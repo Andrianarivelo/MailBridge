@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MailBridge</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Fond animé (halos lumineux très lents) -->
+  <div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
+
+  <main id="app">
+    <!-- En-tête : logo, nom, état, réglages -->
+    <header class="top reveal" style="--i:0">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 48 48"><defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#6366F1"/><stop offset="1" stop-color="#A855F7"/></linearGradient></defs>
+            <rect x="2" y="2" width="44" height="44" rx="12" fill="url(#lg)"/>
+            <rect x="11" y="15" width="26" height="19" rx="3" fill="#fff"/>
+            <path d="M12.5 17.5 24 26l11.5-8.5" fill="none" stroke="url(#lg)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <h1>MailBridge</h1>
+          <p class="sub">Tous vos mails, un seul Gmail</p>
+        </div>
+      </div>
+      <div class="top-right">
+        <span class="pill" id="statusPill"><i class="dot"></i><b id="statusTitle">…</b></span>
+        <button class="icon-btn" id="btnSettings" title="Réglages" aria-label="Réglages"></button>
+      </div>
+    </header>
+
+    <!-- Carte principale : compte à rebours, compteurs, synchroniser -->
+    <section class="card hero reveal" style="--i:1">
+      <div class="ring-wrap" title="Prochaine passe automatique">
+        <svg class="ring" viewBox="0 0 80 80">
+          <defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#6366F1"/><stop offset="1" stop-color="#C084FC"/></linearGradient></defs>
+          <circle class="ring-track" cx="40" cy="40" r="34"/>
+          <circle class="ring-bar" id="ringBar" cx="40" cy="40" r="34"/>
+        </svg>
+        <div class="ring-text"><b id="countdown">--:--</b><small>prochaine</small></div>
+      </div>
+      <div class="hero-main">
+        <div class="metrics">
+          <div><b class="num" id="mToday">0</b><small>aujourd'hui</small></div>
+          <div><b class="num" id="mTotal">0</b><small>au total</small></div>
+        </div>
+        <p class="detail" id="statusDetail">Chargement…</p>
+        <button class="btn primary" id="btnSync"><span class="ico" id="syncIco"></span><span id="syncTxt">Synchroniser</span></button>
+      </div>
+    </section>
+
+    <!-- Comptes sources + destination + calendrier -->
+    <section class="card reveal" style="--i:2">
+      <div class="card-head">
+        <h2>Comptes</h2>
+        <button class="chip" id="btnAdd"><span class="ico" id="addIco"></span>Ajouter</button>
+      </div>
+      <ul class="rows" id="accounts"></ul>
+      <div class="sep"></div>
+      <ul class="rows" id="targets"></ul>
+    </section>
+
+    <!-- Activité récente -->
+    <section class="card reveal" style="--i:3">
+      <div class="card-head">
+        <h2>Activité</h2>
+        <button class="link" id="btnJournal">Journal <span class="ico" id="extIco"></span></button>
+      </div>
+      <ul class="activity" id="recent"></ul>
+    </section>
+  </main>
+
+  <!-- Panneau glissant (ajout / modification de compte, réglages) -->
+  <div class="backdrop" id="backdrop"></div>
+  <section class="sheet" id="sheet" role="dialog" aria-modal="true"></section>
+
+  <!-- Notifications -->
+  <div class="toasts" id="toasts"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

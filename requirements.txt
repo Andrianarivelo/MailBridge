@@ -1,0 +1,2 @@
+pywebview>=5.3      # fenêtre native affichant l'interface HTML (moteur Edge WebView2)
+pywin32>=306        # lecture des comptes Outlook (Inserm, Microsoft 365…)

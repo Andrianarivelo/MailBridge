@@ -1,0 +1,13 @@
+﻿# Données personnelles : jamais versionnées
+data/
+NOTES_SESSION.md
+# Environnement Python privé et outils téléchargés
+.venv/
+.tools/
+__pycache__/
+*.pyc
+# Divers
+*.log
+*.lock
+.vscode/
+.idea/
