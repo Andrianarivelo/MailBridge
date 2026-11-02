@@ -130,7 +130,21 @@ def main() -> None:
     step("5. Fichiers joints")
     shutil.copy2(ROOT / "Install-GmailBridge.cmd", DIST / "Install-GmailBridge.cmd")
     notes = DIST / "RELEASE_NOTES.md"
-    notes.write_text(release_notes(v), encoding="utf-8")
+    install = (f"### 📦 Install
+
+"
+               f"* **Easiest:** download `{NAME}-{v}.zip`, unzip it where the app should live, double-click "
+               f"`Install-GmailBridge.cmd`.
+"
+               f"* **Or** download just `Install-GmailBridge.cmd` and run it: it fetches the latest version for you.
+"
+               f"* **Or** in PowerShell: `irm https://raw.githubusercontent.com/Andrianarivelo/MailBridge/main/install.ps1 | iex`
+
+"
+               f"Windows 10 / 11, no admin rights. Checksums are in `SHA256SUMS.txt`.
+
+")
+    notes.write_text(install + release_notes(v), encoding="utf-8")
     assets = [zpath, DIST / "Install-GmailBridge.cmd"]
     sums = DIST / "SHA256SUMS.txt"
     sums.write_text("".join(f"{sha256(p)}  {p.name}\n" for p in assets), encoding="utf-8")

@@ -57,7 +57,8 @@ irm https://raw.githubusercontent.com/Andrianarivelo/MailBridge/main/install.ps1
 ```
 
 Prefer clicking? Grab the zip from the [latest release](https://github.com/Andrianarivelo/MailBridge/releases/latest),
-unzip it anywhere, then double-click **`Install-GmailBridge.cmd`**. ☕ That's it.
+unzip it where you want the app to live (say `Documents\GmailBridge`: it runs from there), then
+double-click **`Install-GmailBridge.cmd`**. ☕ That's it.
 
 The installer sets up a private Python with [uv](https://github.com/astral-sh/uv) (nothing touches your
 system), creates the background task, adds a **GmailBridge** icon to your Desktop and Start menu, then
