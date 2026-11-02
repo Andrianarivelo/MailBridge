@@ -1,0 +1,4 @@
+# Exclus des archives (zip de release, téléchargement par install.ps1) : images de documentation lourdes
+/docs/redesign export-ignore
+/docs/screenshots export-ignore
+/.gitattributes export-ignore

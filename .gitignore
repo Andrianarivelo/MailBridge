@@ -11,3 +11,5 @@ __pycache__/
 *.lock
 .vscode/
 .idea/
+# Release compilée (tools/build_release.py)
+dist/

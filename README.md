@@ -1,209 +1,271 @@
 <div align="center">
 
-<img src="assets/brand/gmailbridge-banner.svg" width="780" alt="GmailBridge : tous vos mails, un seul Gmail">
+<img src="assets/brand/gmailbridge-banner.svg" width="780" alt="GmailBridge: all your mail, one Gmail">
 
 # GmailBridge
 
-**Tous vos mails et vos agendas, dans un seul Gmail.** <sub>(anciennement MailBridge)</sub>
-Université, Inserm / Microsoft 365, Yahoo, iCloud, Orange, Free… copiés dans Gmail, et vos
-calendriers Outlook copiés dans Google Agenda. Une petite application Windows, en arrière-plan.
+**All your inboxes and calendars, in one Gmail.** 🌅
+<sub>(formerly MailBridge)</sub>
 
-[Installer](#installation-en-un-clic) · [Fonctionnement](#comment-ça-marche) · [Google Agenda](docs/GOOGLE_SETUP.md) · [FAQ](#faq)
+University, Inserm / Microsoft 365, Yahoo, iCloud, Orange, Free… all landing in Gmail, plus your
+Outlook calendars copied into Google Calendar. A small Windows app that quietly does its job in the background.
 
-<img src="docs/screenshot-main.png" width="300" alt="Fenêtre principale">&nbsp;&nbsp;
-<img src="docs/screenshot-add-account.png" width="300" alt="Ajouter un compte">&nbsp;&nbsp;
-<img src="docs/screenshot-calendar.png" width="300" alt="Google Agenda">
+[![Release](https://img.shields.io/github/v/release/Andrianarivelo/MailBridge?color=FF8A4C&label=release)](https://github.com/Andrianarivelo/MailBridge/releases/latest)
+![Windows 10 / 11](https://img.shields.io/badge/Windows-10%20%2F%2011-3A2E7E)
+![Tests](https://img.shields.io/badge/tests-60%20passing-0F7F5F)
+[![License: MIT](https://img.shields.io/badge/license-MIT-141A3F)](LICENSE)
+
+[Install](#-install-in-30-seconds) · [Tour](#-a-three-minute-tour) · [Google Calendar](#-google-calendar-in-5-minutes) · [How it works](#%EF%B8%8F-how-it-works) · [FAQ](#-faq)
+
+<img src="docs/screenshots/hero.png" width="860" alt="GmailBridge windows: dashboard, add an account, Google Calendar">
 
 </div>
 
-## Pourquoi ?
+## 🤔 Why does this exist?
 
-La règle « transférer vers Gmail » d'Outlook / Exchange **perd des mails** : quand un serveur
-réexpédie un message venu de l'extérieur, Gmail le rejette (`550 5.7.30 DKIM authentication didn't
-pass`), car l'expéditeur d'origine ne correspond plus au serveur qui l'envoie. Sur une boîte
-universitaire réelle, environ un message sur deux n'arrivait jamais.
+You told Outlook / Exchange to "forward everything to Gmail". Sounds simple. Except Gmail politely
+**bounces about half of it** (`550 5.7.30 DKIM authentication didn't pass`): when a server re-sends a
+message that came from someone else, the signatures no longer match, and Gmail assumes it's fishy.
+On a real university mailbox, **one message in two never arrived**. Ouch. 🕳️📬
 
-GmailBridge ne transfère pas : il **lit** chaque message à la source puis le **dépose** directement
-dans Gmail (IMAP `APPEND`). Un dépôt n'est pas une réception : aucun contrôle SPF / DKIM, rien n'est
-rejeté. Expéditeur, date, fil de discussion et pièces jointes sont conservés.
+GmailBridge doesn't forward. It **reads** each message at the source and **drops** it straight into
+your Gmail (IMAP `APPEND`). Dropping is not receiving: no SPF / DKIM check, nothing gets rejected.
+Sender, date, thread and attachments all arrive exactly as they left.
 
-## Fonctionnalités
+## ✨ What it does
 
-* **Plusieurs comptes**, chacun avec son libellé Gmail : IMAP (université, Yahoo, iCloud, Orange,
-  Free, GMX, autre) ou **Outlook** (Inserm, Microsoft 365, UNIGE… sans mot de passe, via Outlook ouvert).
-* **Calendriers** : rendez-vous Outlook copiés dans Google Agenda (création, mise à jour,
-  suppression ; récurrences ; événements privés et disponibilité respectés).
-* **Aucun doublon** : un message déjà présent dans Gmail (même identifiant, ou même expéditeur,
-  objet et heure, car certaines redirections réécrivent l'identifiant) n'est pas recopié.
-* **Rattrapage** des 30 derniers jours à l'ajout d'un compte.
-* **Arrière-plan** : une tâche Windows à l'ouverture de session puis toutes les 5 minutes, sans
-  fenêtre, en priorité basse. Une **icône GmailBridge dans la zone de notification** reste visible
-  entre les passes. Fermer l'application n'arrête rien.
-* **Sécurité** : lecture seule à la source ; mots de passe dans le Gestionnaire d'identifiants
-  Windows, jamais dans un fichier ; aucun serveur tiers, tout se passe entre votre PC et vos comptes.
-* **Traçabilité** : chaque message examiné est noté dans un journal CSV (ouvrable dans Excel).
+* 📥 **Many inboxes, one Gmail.** Each account gets its own Gmail label. IMAP (university, Yahoo,
+  iCloud, Orange, Free, GMX, anything else) or **Outlook mode** (Inserm, Microsoft 365, UNIGE…):
+  no password needed, it reads through the Outlook already open on your PC.
+* 📅 **Calendars too.** Outlook appointments are copied into Google Calendar: new, changed and deleted
+  events, recurrences, private events and busy / free status included.
+* 🧹 **No duplicates.** A message already in Gmail (same ID, or same sender + subject + time, because
+  some redirects rewrite IDs) is never copied twice.
+* ⏪ **Catch-up.** When you add an account, the last 30 days come along too.
+* 🌙 **Background mode.** A Windows task runs at sign-in, then every 5 minutes, at low priority and
+  with no window. A tray icon shows that all is well. Closing the app stops nothing.
+* 🔒 **Safe by design.** Read-only at the source, passwords in the Windows Credential Manager (never in a
+  file), and no third-party server: just your PC talking to your own accounts.
+* 🧾 **Receipts.** Every message examined is logged in a CSV journal (opens in Excel).
 
-## Installation en un clic
+## 🚀 Install in 30 seconds
 
-**Windows 10 / 11**, aucun droit administrateur. Dans PowerShell :
+**Windows 10 / 11**, no admin rights needed. Open PowerShell and paste:
 
 ```powershell
 irm https://raw.githubusercontent.com/Andrianarivelo/MailBridge/main/install.ps1 | iex
 ```
 
-Ou téléchargez [`Install-GmailBridge.cmd`](Install-GmailBridge.cmd) et double-cliquez dessus.
+Prefer clicking? Grab the zip from the [latest release](https://github.com/Andrianarivelo/MailBridge/releases/latest),
+unzip it anywhere, then double-click **`Install-GmailBridge.cmd`**. ☕ That's it.
 
-L'installateur place GmailBridge dans `%LOCALAPPDATA%\Programs\MailBridge`, installe un Python privé
-avec [uv](https://github.com/astral-sh/uv) (rien n'est ajouté au système), crée la tâche planifiée et
-l'icône **GmailBridge** sur le Bureau, puis ouvre l'application.
+The installer sets up a private Python with [uv](https://github.com/astral-sh/uv) (nothing touches your
+system), creates the background task, adds a **GmailBridge** icon to your Desktop and Start menu, then
+opens the app. To remove it all, run **`Uninstall-GmailBridge.cmd`** (your settings and passwords stay put).
 
-L'icône de notification démarre aussi à chaque ouverture de session. Cliquez dessus pour ouvrir
-GmailBridge ; un clic droit propose **Synchroniser maintenant**. Son infobulle indique si
-l'automatisation est active, en pause ou en erreur, ainsi que la dernière passe.
-Windows peut ranger l'icône dans le panneau des icônes masquées (flèche près de l'horloge).
+> 🇫🇷 **Heads-up:** the app itself speaks French for now (it was born in a Paris lab). The screenshots
+> below come with English captions, and there's a [tiny phrasebook](#-french-phrasebook) further down.
 
-## Premiers pas
+## 🧭 A three-minute tour
 
-1. **Gmail (destination)** : créez un [mot de passe d'application](https://myaccount.google.com/apppasswords)
-   (validation en deux étapes requise), puis collez les 16 lettres dans GmailBridge.
-2. **Ajouter** vos comptes : choisissez le fournisseur, saisissez identifiant et mot de passe
-   (ou, pour Outlook, choisissez le compte). La connexion est testée immédiatement.
-3. **Google Agenda** (facultatif) : suivez le [guide de 5 minutes](docs/GOOGLE_SETUP.md), puis
-   ajoutez les calendriers Outlook à copier.
+All screenshots come from the built-in demo mode, so the names and addresses are made up.
 
-| Fournisseur | Mot de passe à utiliser |
+<table>
+<tr>
+<td width="50%" align="center"><img src="docs/screenshots/01-dashboard-light.png" width="300" alt="Dashboard, light theme"></td>
+<td width="50%" align="center"><img src="docs/screenshots/01-dashboard-dark.png" width="300" alt="Dashboard, dark theme"></td>
+</tr>
+<tr><td colspan="2">
+
+**1. Meet the dashboard.** The little bridge is the countdown: the sun (your mail 🌞) travels along
+the cable and the next sync happens when it reaches the far tower. Below it: messages copied today and
+in total, your accounts with today's catch, and where everything ends up (Gmail + Google Calendar).
+Each status light is a tiny sun on the horizon: green means all good. It follows Windows' light or dark theme.
+
+</td></tr>
+<tr>
+<td align="center"><img src="docs/screenshots/02-gmail.png" width="300" alt="Connect Gmail"></td>
+<td>
+
+**2. Tell it where to deliver.** Click **Gmail (destination)**, type your Gmail address and paste a
+Google [app password](https://myaccount.google.com/apppasswords) (16 letters, needs 2-step
+verification). The little counter turns green at 16/16. Click **Save and test** and you're done.
+
+</td></tr>
+<tr>
+<td align="center"><img src="docs/screenshots/03-add-account.png" width="300" alt="Pick a provider"></td>
+<td align="center"><img src="docs/screenshots/04-account-form.png" width="300" alt="Account form"></td>
+</tr>
+<tr><td colspan="2">
+
+**3. Add your inboxes.** Hit the dashed **+ Add** (« Ajouter ») button and pick your provider. Fill in
+the login, and GmailBridge tests the connection right away. Pick the Gmail label you like (U-Paris,
+Yahoo, Work…). For Outlook-mode accounts there's nothing to type: just choose the account in the list.
+
+</td></tr>
+<tr>
+<td align="center"><img src="docs/screenshots/05-calendar-setup.png" width="300" alt="Google Calendar setup wizard"></td>
+<td align="center"><img src="docs/screenshots/06-calendar-connected.png" width="300" alt="Google Calendar connected"></td>
+</tr>
+<tr><td colspan="2">
+
+**4. Calendars, if you want them (optional).** The Google Calendar panel is a step-by-step wizard:
+every line opens the exact Google page and says what to click. It even spots the downloaded
+`client_secret_….json` in your Downloads folder and imports it by itself. Once connected, it
+**actually tests** the access (« Connecté et vérifié ») and lists the Outlook calendars being mirrored.
+
+</td></tr>
+<tr>
+<td align="center"><img src="docs/screenshots/07-settings.png" width="300" alt="Settings"></td>
+<td align="center"><img src="docs/screenshots/sync.gif" width="300" alt="Sync animation"></td>
+</tr>
+<tr><td colspan="2">
+
+**5. Settings, and the fun button.** In settings (the sliders icon, top right): automatic start (the
+switch's sun rises when it's on 🌅), a test of every connection, the journal, the data folder. Feeling
+impatient? Hover **Synchroniser**: a sun rises under the button. Click it: letters stream across the
+bridge, then a toast tells you how many messages were copied.
+
+</td></tr>
+</table>
+
+### 🇫🇷 French phrasebook
+
+| On screen | Means |
 |---|---|
-| Université Paris Cité (`imap.u-paris.fr`) | mot de passe ENT |
-| Inserm, Microsoft 365, UNIGE… (mode Outlook) | aucun : Outlook doit être ouvert |
-| Yahoo | mot de passe d'application Yahoo |
-| iCloud | mot de passe pour app Apple |
-| Orange, Free, GMX | mot de passe de la messagerie (GMX : activer IMAP) |
-| Gmail (destination) | mot de passe d'application Google |
+| Synchroniser | Sync now |
+| prochaine passe | next run |
+| aujourd'hui · au total | today · in total |
+| Comptes · Ajouter | Accounts · Add |
+| Activité · copié | Activity · copied |
+| Actif · En cours · À vérifier · En pause | Active · Running · Needs a look · Paused |
+| Réglages · Démarrage automatique | Settings · Start automatically |
+| Mot de passe d'application | App password |
+| Enregistrer et tester | Save and test |
 
-## Comment ça marche
+### 🔑 Which password goes where?
+
+| Provider | Password to use |
+|---|---|
+| Université Paris Cité (`imap.u-paris.fr`) | your ENT password |
+| Inserm, Microsoft 365, UNIGE… (Outlook mode) | none: just keep Outlook open |
+| Yahoo | a Yahoo app password |
+| iCloud | an Apple app-specific password |
+| Orange, Free, GMX | your webmail password (GMX: switch IMAP on) |
+| Gmail (destination) | a Google app password |
+
+## 📅 Google Calendar in 5 minutes
+
+Google Calendar doesn't accept app passwords, so everyone creates their **own** free OAuth access (it
+belongs to you, nobody else can use it). The wizard in the app walks you through it; here's the gist:
+
+1. [Enable the Google Calendar API](https://console.cloud.google.com/flows/enableapi?apiid=calendar-json.googleapis.com)
+   (create a project called `GmailBridge` if asked).
+2. [Declare the app](https://console.developers.google.com/auth/branding): name `GmailBridge`, your Gmail, audience **External**.
+3. [Publish it](https://console.developers.google.com/auth/audience), otherwise access expires after 7 days.
+4. [Create a client](https://console.developers.google.com/auth/clients) of type **Desktop app** and **download the JSON**.
+   GmailBridge picks it up from your Downloads folder on its own. 🪄
+5. Click **Se connecter à Google** (sign in). Google says "this app isn't verified": that's expected, it's
+   *your* app. Click **Advanced** › **Go to GmailBridge** › tick Google Calendar › **Continue**.
+
+The full guide (in French) lives in [docs/GOOGLE_SETUP.md](docs/GOOGLE_SETUP.md).
+
+## ⚙️ How it works
 
 ```mermaid
 flowchart LR
   subgraph Sources
-    A[Exchange université<br/>IMAP]
+    A[University Exchange<br/>IMAP]
     B[Inserm / Microsoft 365<br/>via Outlook]
     C[Yahoo, iCloud, Orange…<br/>IMAP]
-    D[Calendriers Outlook]
+    D[Outlook calendars]
   end
-  A & B & C -->|lecture seule| E((GmailBridge<br/>tâche toutes les 5 min))
-  D -->|lecture seule| E
-  E -->|IMAP APPEND + libellés| F[Gmail]
-  E -->|API Google Calendar| G[Google Agenda]
+  A & B & C -->|read-only| E((GmailBridge<br/>every 5 min))
+  D -->|read-only| E
+  E -->|IMAP APPEND + labels| F[Gmail]
+  E -->|Google Calendar API| G[Google Calendar]
 ```
 
-Une **passe** : pour chaque compte, on liste les nouveaux messages (progression mémorisée), on
-ignore les avis de non-remise, on vérifie qu'ils ne sont pas déjà dans Gmail, on les dépose puis
-on pose le libellé du compte. Ensuite, tous les quarts d'heure, on aligne chaque agenda Google
-cible sur son calendrier Outlook (seuls les événements copiés par GmailBridge sont modifiés).
+One **run**, for each account: list the new messages (progress is remembered), skip bounce
+notices, check they're not already in Gmail, drop them in, apply the label. Every quarter of an hour,
+each target Google calendar is lined up with its Outlook calendar (only events GmailBridge created are
+ever touched).
 
 ```
 MailBridge/
-├─ GmailBridge.pyw          fenêtre (icône du Bureau)
-├─ install.ps1             installation / désinstallation
+├─ GmailBridge.pyw         the window (Desktop icon)
+├─ install.ps1             install / uninstall
 ├─ mailbridge/
-│  ├─ engine.py            moteur : comptes -> Gmail, puis agendas (python -m mailbridge.engine)
-│  ├─ outlook_source.py    lecture des comptes Outlook (COM)
-│  ├─ calendar_sync.py     Outlook -> Google Agenda
-│  ├─ gcal.py              OAuth + API Google Calendar (bibliothèque standard)
-│  ├─ config.py            comptes, calendriers, réglages (data/config.json)
-│  ├─ credentials.py       coffre d'identifiants Windows
-│  ├─ ui.py + web/         interface HTML/CSS animée (pywebview + WebView2)
-│  ├─ tray.py              icône de notification Windows persistante (pywin32)
-│  ├─ background.py        lancement sans console et état de la tâche Windows
-│  ├─ web/icons.js         iconographie de l'interface (générée)
-│  └─ icon.py              symbole : source unique du SVG et de l'icône .ico (Python pur)
-├─ assets/brand/          symbole, logotype, bannière, charte, pictogrammes (SVG)
-├─ tools/build_brand.py   génère toute la marque (fontTools, développement seulement)
-├─ tests/                  tests hors ligne (faux serveurs IMAP, faux Outlook, faux Google, icône)
-└─ data/                   VOS données : config, état, journaux (jamais versionné)
+│  ├─ engine.py            the engine: accounts -> Gmail, then calendars
+│  ├─ outlook_source.py    reads Outlook accounts (COM)
+│  ├─ calendar_sync.py     Outlook -> Google Calendar
+│  ├─ gcal.py              OAuth + Google Calendar API (standard library only)
+│  ├─ config.py            accounts, calendars, settings (data/config.json)
+│  ├─ credentials.py       Windows Credential Manager
+│  ├─ ui.py + web/         HTML/CSS interface (pywebview + WebView2)
+│  ├─ tray.py              tray icon (pywin32)
+│  ├─ background.py        console-free launching and task status
+│  └─ icon.py              the logo, single source for the SVG and the .ico (pure Python)
+├─ assets/brand/           logo, wordmark, banner, brand sheet, icons (SVG)
+├─ tools/                  brand, screenshot and release builders (dev only)
+├─ tests/                  offline tests (fake IMAP servers, fake Outlook, fake Google)
+└─ data/                   YOUR data: config, state, logs (never committed)
 ```
 
-## Identité visuelle
+## 🔒 Your data stays yours
 
-<img src="assets/brand/gmailbridge-mark.svg" width="72" align="left" alt="">
+* **Read-only** at the source: GmailBridge never deletes or changes anything in your original mailboxes.
+* **Passwords** live in the Windows Credential Manager, never in a file and never in the logs.
+* **No cloud of ours**: there's no GmailBridge server. Your PC talks to your accounts, period.
+* **Calendar access** is your own OAuth client, revocable at any time in your
+  [Google account](https://myaccount.google.com/permissions) or with **Déconnecter** (disconnect) in the app.
 
-Le symbole est un **pont suspendu au lever du soleil**. Les deux pylônes et le câble porteur
-(une vraie parabole) dessinent un **M**, celui de Gmail, qui est aussi le rabat d'une enveloppe.
-Le tablier sert d'horizon, et le soleil, c'est-à-dire le courrier qui arrive, se lève derrière le pont.
-Le logotype est en Sora (licence SIL OFL), avec un détail en signature : le point du « i » de
-« Bridge » est ce même soleil.
+## 🎨 The look
 
-La même idée sert de **signalétique** dans l'application. Chaque état est un demi-soleil posé
-sur l'horizon. Le compte à rebours est un pont que le courrier traverse jusqu'à la prochaine passe.
-La poignée des panneaux est un câble en U, et le bouton principal est un ciel de nuit où le soleil
-se lève au survol.
+<img src="assets/brand/gmailbridge-mark.svg" width="64" align="left" alt="">
 
-Tout est vectoriel, dans [`assets/brand/`](assets/brand) : symbole (détaillé et petites tailles),
-logotype et composition (clair / sombre), bannière, pictogrammes et
-[charte graphique](assets/brand/gmailbridge-charte.svg). Le symbole n'a qu'une seule source,
-`mailbridge/icon.py`, qui écrit à la fois les SVG et l'icône Windows multi-tailles. Pour tout régénérer :
+The logo is a **suspension bridge at sunrise**. The two towers and the cable (a real parabola) draw
+an **M** for Gmail, which is also an envelope flap. The deck is the horizon, and the rising sun is your
+mail arriving. In the wordmark, the dot on the "i" of *Bridge* is that same sun. The whole app reuses
+the idea: status lights are little suns, the countdown is a bridge, and the main button is a night sky
+where the sun rises on hover. Everything is vector and generated from code: see the
+[brand sheet](assets/brand/gmailbridge-charte.svg) and [assets/brand](assets/brand).
 
-```powershell
-uv run --with fonttools python tools/build_brand.py
-```
+## ❓ FAQ
 
-## Réglages
+**Does my PC need to stay on?** Yes, with your session open. Anything that arrives while it's off is
+picked up on the next run. Nothing is lost.
 
-Dans `data/config.json` (section `settings`) : fréquence (`interval_minutes`), rattrapage
-(`backfill_days`), délai laissé à une redirection existante (`min_age_minutes`), fenêtre des
-agendas (`calendar_past_days`, `calendar_future_days`), fréquence des agendas
-(`calendar_interval_minutes`). Ligne de commande :
+**Why "Outlook mode" for Microsoft 365?** Microsoft switched off password-based IMAP for Microsoft 365.
+Outlook is already signed in, so GmailBridge simply reads through it: no password to hand over.
 
-```powershell
-.venv\Scripts\python -m mailbridge.engine --check      # teste Gmail, chaque compte et Google Agenda
-.venv\Scripts\python -m mailbridge.engine --dry-run    # simulation (rien n'est écrit)
-.venv\Scripts\python -m mailbridge.engine --calendar-only
-```
+**How heavy is it?** In the background, a run takes a few seconds and then the process exits. The tray
+icon is a tiny separate process without any web view. The window uses Edge WebView2: about 2 s to open
+and a few hundred MB while it's open. Close it: nothing stops.
 
-## FAQ
+**Does hiding the tray icon stop syncing?** No. **Masquer l'icône (synchro maintenue)** only hides the
+indicator. To pause the automatic runs, turn off automatic start in the settings.
 
-**Le PC doit-il rester allumé ?** Oui, avec votre session ouverte. Ce qui arrive pendant qu'il est
-éteint est rattrapé à la passe suivante.
+**Is it OK with my institution?** Copying work mail to a personal account can be covered by your
+institution's IT policy (GDPR, student data…). Have a quick look before using it.
 
-**Pourquoi le mode Outlook pour Microsoft 365 ?** Microsoft a désactivé la connexion IMAP par mot de
-passe sur Microsoft 365. Outlook, déjà connecté, sert de source : aucun mot de passe à donner.
+**I knew it as MailBridge!** Same app, new name and new look since 3.0. Your settings, passwords and
+background tasks carry over untouched.
 
-**Pourquoi un accès Google à créer pour l'agenda ?** Google Agenda refuse les mots de passe
-d'application. Chaque utilisateur crée son propre accès OAuth (gratuit, 5 minutes) : voir
-[le guide](docs/GOOGLE_SETUP.md).
-
-**Combien de ressources ?** En arrière-plan, une passe dure quelques secondes puis le processus se
-ferme. L'icône reste présente dans un petit processus séparé, sans WebView, même lorsque la fenêtre
-est fermée. La fenêtre utilise le moteur Edge WebView2 : environ 2 s pour s'ouvrir et quelques
-centaines de Mo tant qu'elle est ouverte. Fermez-la, rien ne s'arrête.
-
-**Masquer l'icône arrête-t-il la synchronisation ?** Non. Le menu **Masquer l'icône (synchro maintenue)**
-ferme uniquement l'indicateur. Rouvrir GmailBridge le réaffiche. Pour suspendre les passes automatiques,
-utilisez le réglage de démarrage automatique dans GmailBridge ; l'infobulle indique alors la pause.
-
-**Est-ce autorisé par mon établissement ?** Copier du courrier professionnel vers un compte
-personnel peut être encadré par la charte informatique de votre établissement (RGPD, données
-d'étudiants). Vérifiez-la avant usage.
-
-**Désinstaller ?** [`Uninstall-GmailBridge.cmd`](Uninstall-GmailBridge.cmd) retire les deux tâches et les
-icônes (vos réglages, journaux et identifiants sont conservés ; supprimez le dossier pour tout effacer).
-
-## Développement
+## 🧑‍💻 For developers
 
 ```powershell
 uv venv .venv --python 3.12 ; uv pip install --python .venv\Scripts\python.exe -r requirements.txt
-.venv\Scripts\python -m unittest discover -s tests -v
-.venv\Scripts\python GmailBridge.pyw --demo        # interface avec des données fictives
+.venv\Scripts\python -m unittest discover -s tests -v          # 60 offline tests
+.venv\Scripts\python GmailBridge.pyw --demo                    # the UI with fake data
+uv run --with fonttools python tools/build_brand.py            # rebuild logo, icons, brand sheet
+uv run --with playwright --with pillow python tools/make_screenshots.py   # README screenshots (uses installed Chrome)
+.venv\Scripts\python tools/build_release.py                    # tests + checks + release zip in dist/
 ```
 
-## English summary
+## ⚖️ License & fine print
 
-GmailBridge is a small Windows app that gathers several mailboxes (university Exchange over IMAP,
-Microsoft 365 through the local Outlook client, Yahoo, iCloud…) into one Gmail inbox by reading each
-message at the source and appending it to Gmail over IMAP, which avoids the SPF/DKIM rejections
-that break server-side forwarding. It also mirrors Outlook calendars into Google Calendar (OAuth,
-one-way, tagged events only). One-click install, runs in the background, MIT licensed.
+[MIT](LICENSE). The Sora typeface is under the SIL Open Font License (see `mailbridge/web/fonts/OFL.txt`).
 
-## Licence
-
-[MIT](LICENSE)
+GmailBridge is an independent personal project, **not affiliated with, endorsed or sponsored by Google**.
+Gmail and Google Calendar are trademarks of Google LLC; Outlook and Microsoft 365 are trademarks of Microsoft.
