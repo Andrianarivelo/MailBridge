@@ -144,7 +144,8 @@ def main() -> None:
     notes.write_text(install + release_notes(v), encoding="utf-8")
     assets = [zpath, DIST / "Install-GmailBridge.cmd"]
     sums = DIST / "SHA256SUMS.txt"
-    sums.write_text("".join(f"{sha256(p)}  {p.name}\n" for p in assets), encoding="utf-8")
+    # fins de ligne Unix : « sha256sum -c » refuse les CRLF que Windows écrirait par défaut
+    sums.write_bytes("".join(f"{sha256(p)}  {p.name}\n" for p in assets).encode("utf-8"))
     for p in assets + [sums, notes]:
         print(f"  {p.relative_to(ROOT)}")
 
