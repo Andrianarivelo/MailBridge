@@ -27,10 +27,10 @@ import winreg
 from datetime import datetime, timedelta
 
 from . import ASSETS_DIR, BASE_DIR, WEB_DIR, __version__, config, credentials, engine, gcal
+from .background import TASK_NAME, ensure_tray, task_enabled
 
 # ----------------------------- Paramètres ------------------------------------
 APP_TITLE = "MailBridge"
-TASK_NAME = "MailBridge"
 WINDOW_SIZE = (420, 730)       # px logiques (mis à l'échelle par Windows)
 RECENT_ROWS = 3
 ACTIONS_SHOWN = {"copié": "copié", "abandonné": "abandonné", "erreur": "erreur",
@@ -53,16 +53,6 @@ def dark_mode() -> bool:
 
 def _run(args, timeout=30):
     return subprocess.run(args, capture_output=True, creationflags=_NO_WINDOW, timeout=timeout)
-
-
-def task_enabled() -> bool | None:
-    """Tâche planifiée : True activée, False en pause, None absente."""
-    r = _run(["schtasks", "/Query", "/TN", TASK_NAME, "/XML"])
-    if r.returncode != 0:
-        return None
-    xml = r.stdout.replace(b"\x00", b"").decode("ascii", "ignore")   # UTF-16 selon les PC
-    block = re.search(r"<Settings>.*?</Settings>", xml, re.S)
-    return not (block and "<Enabled>false</Enabled>" in block.group(0))
 
 
 def python_console() -> str:
@@ -441,6 +431,8 @@ def main(argv=None) -> None:
 
     argv = sys.argv[1:] if argv is None else argv
     demo = next((a[2:] for a in argv if a.startswith("--demo")), "")   # --demo, --demo-add, --demo-form
+    if not demo:
+        ensure_tray()
     if not demo and already_running():
         return
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("Andrianarivelo.MailBridge")

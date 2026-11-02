@@ -37,7 +37,8 @@ rejeté. Expéditeur, date, fil de discussion et pièces jointes sont conservés
   objet et heure, car certaines redirections réécrivent l'identifiant) n'est pas recopié.
 * **Rattrapage** des 30 derniers jours à l'ajout d'un compte.
 * **Arrière-plan** : une tâche Windows à l'ouverture de session puis toutes les 5 minutes, sans
-  fenêtre, en priorité basse. Fermer l'application n'arrête rien.
+  fenêtre, en priorité basse. Une **icône MailBridge dans la zone de notification** reste visible
+  entre les passes. Fermer l'application n'arrête rien.
 * **Sécurité** : lecture seule à la source ; mots de passe dans le Gestionnaire d'identifiants
   Windows, jamais dans un fichier ; aucun serveur tiers, tout se passe entre votre PC et vos comptes.
 * **Traçabilité** : chaque message examiné est noté dans un journal CSV (ouvrable dans Excel).
@@ -55,6 +56,11 @@ Ou téléchargez [`Install-MailBridge.cmd`](Install-MailBridge.cmd) et double-cl
 L'installateur place MailBridge dans `%LOCALAPPDATA%\Programs\MailBridge`, installe un Python privé
 avec [uv](https://github.com/astral-sh/uv) (rien n'est ajouté au système), crée la tâche planifiée et
 l'icône **MailBridge** sur le Bureau, puis ouvre l'application.
+
+L'icône de notification démarre aussi à chaque ouverture de session. Cliquez dessus pour ouvrir
+MailBridge ; un clic droit propose **Synchroniser maintenant**. Son infobulle indique si
+l'automatisation est active, en pause ou en erreur, ainsi que la dernière passe.
+Windows peut ranger l'icône dans le panneau des icônes masquées (flèche près de l'horloge).
 
 ## Premiers pas
 
@@ -107,8 +113,10 @@ MailBridge/
 │  ├─ config.py            comptes, calendriers, réglages (data/config.json)
 │  ├─ credentials.py       coffre d'identifiants Windows
 │  ├─ ui.py + web/         interface HTML/CSS animée (pywebview + WebView2)
+│  ├─ tray.py              icône de notification Windows persistante (pywin32)
+│  ├─ background.py        lancement sans console et état de la tâche Windows
 │  └─ icon.py              icône dessinée en Python pur
-├─ tests/                  35 tests hors ligne (faux serveurs IMAP, faux Outlook, faux Google)
+├─ tests/                  tests hors ligne (faux serveurs IMAP, faux Outlook, faux Google, icône)
 └─ data/                   VOS données : config, état, journaux (jamais versionné)
 ```
 
@@ -138,14 +146,19 @@ d'application. Chaque utilisateur crée son propre accès OAuth (gratuit, 5 minu
 [le guide](docs/GOOGLE_SETUP.md).
 
 **Combien de ressources ?** En arrière-plan, une passe dure quelques secondes puis le processus se
-ferme. La fenêtre, elle, utilise le moteur Edge WebView2 : environ 2 s pour s'ouvrir et quelques
+ferme. L'icône reste présente dans un petit processus séparé, sans WebView, même lorsque la fenêtre
+est fermée. La fenêtre utilise le moteur Edge WebView2 : environ 2 s pour s'ouvrir et quelques
 centaines de Mo tant qu'elle est ouverte. Fermez-la, rien ne s'arrête.
+
+**Masquer l'icône arrête-t-il la synchronisation ?** Non. Le menu **Masquer l'icône (synchro maintenue)**
+ferme uniquement l'indicateur. Rouvrir MailBridge le réaffiche. Pour suspendre les passes automatiques,
+utilisez le réglage de démarrage automatique dans MailBridge ; l'infobulle indique alors la pause.
 
 **Est-ce autorisé par mon établissement ?** Copier du courrier professionnel vers un compte
 personnel peut être encadré par la charte informatique de votre établissement (RGPD, données
 d'étudiants). Vérifiez-la avant usage.
 
-**Désinstaller ?** [`Uninstall-MailBridge.cmd`](Uninstall-MailBridge.cmd) retire la tâche et les
+**Désinstaller ?** [`Uninstall-MailBridge.cmd`](Uninstall-MailBridge.cmd) retire les deux tâches et les
 icônes (vos réglages, journaux et identifiants sont conservés ; supprimez le dossier pour tout effacer).
 
 ## Développement

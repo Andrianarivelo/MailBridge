@@ -14,6 +14,8 @@ Modules
     gcal            connexion OAuth et API Google Agenda (bibliothèque standard seulement)
     calendar_sync   synchronisation Outlook -> Google Agenda (création, mise à jour, suppression)
     icon            icône de l'application, dessinée en Python pur
+    tray            icône persistante dans la zone de notification Windows
+    background      lancement sans console et lecture de la tâche planifiée
     ui              fenêtre de contrôle (HTML/CSS animé dans une fenêtre native)
 """
 

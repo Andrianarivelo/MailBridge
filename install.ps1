@@ -9,7 +9,8 @@
 #    1. récupère MailBridge dans %LOCALAPPDATA%\Programs\MailBridge (ou l'utilise sur place) ;
 #    2. installe un Python privé + pywebview / pywin32 grâce à « uv » (rien n'est ajouté au PATH) ;
 #    3. crée la tâche planifiée « MailBridge » (ouverture de session + toutes les 5 min,
-#       sans fenêtre, priorité basse) et l'icône MailBridge (Bureau + menu Démarrer) ;
+#       sans fenêtre, priorité basse), une icône de notification à l'ouverture de session
+#       et les raccourcis MailBridge (Bureau + menu Démarrer) ;
 #    4. ouvre MailBridge.
 #
 #  Options (variables d'environnement, à définir avant de lancer le script) :
@@ -26,6 +27,7 @@ $ProgressPreference = 'SilentlyContinue'
 $Repo        = 'Andrianarivelo/MailBridge'
 $Branch      = 'main'
 $TaskName    = 'MailBridge'
+$TrayTaskName = 'MailBridgeTray'
 $PythonVer   = '3.12'
 # Dossier source : celui du script (lancé depuis un dossier téléchargé) ou rien (lancé depuis Internet)
 $Here        = if ($env:MAILBRIDGE_SRC) { $env:MAILBRIDGE_SRC.TrimEnd('\') } `
@@ -53,6 +55,17 @@ Write-Host ""
 
 if ($Remove) {
     Step "Désinstallation"
+    # Ferme aussi une icône lancée depuis le raccourci, puis attend sa terminaison.
+    $removePython = Join-Path $InstallDir '.venv\Scripts\python.exe'
+    if (Test-Path $removePython) {
+        Push-Location $InstallDir
+        try {
+            & $removePython -m mailbridge.tray --stop
+            if ($LASTEXITCODE) { throw "Arrêt de l'icône impossible." }
+        } finally { Pop-Location }
+    }
+    Stop-ScheduledTask -TaskName $TrayTaskName -ErrorAction SilentlyContinue
+    Unregister-ScheduledTask -TaskName $TrayTaskName -Confirm:$false -ErrorAction SilentlyContinue
     Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction SilentlyContinue
     Remove-Shortcuts
     Done "Tâche et raccourcis supprimés. Le dossier $InstallDir (réglages, journaux) est conservé."
@@ -106,7 +119,7 @@ $Py  = Join-Path $Venv 'Scripts\python.exe'
 $PyW = Join-Path $Venv 'Scripts\pythonw.exe'
 & $uv pip install --python $Py -r (Join-Path $InstallDir 'requirements.txt') --quiet
 if ($LASTEXITCODE) { throw "Installation des dépendances impossible." }
-& $Py -m mailbridge.icon | Out-Null
+& $Py (Join-Path $InstallDir 'mailbridge\icon.py') | Out-Null
 Done "Python et dépendances prêts"
 
 # 3) Tâche planifiée + icône ---------------------------------------------------------
@@ -125,6 +138,24 @@ $principal = New-ScheduledTaskPrincipal -UserId $UserId -LogonType Interactive -
 Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger @($every, $logon) -Settings $settings `
     -Principal $principal -Force -Description 'MailBridge : copie vos comptes mail dans Gmail.' | Out-Null
 
+# L'icône reste résidente, sans charger WebView. La tâche moteur reste indépendante.
+# Fermeture propre avant l'arrêt de la tâche pour retirer aussi l'icône d'Explorer.
+Push-Location $InstallDir
+try {
+    & $Py -m mailbridge.tray --stop
+    if ($LASTEXITCODE) { throw "Arrêt de l'ancienne icône impossible." }
+} finally { Pop-Location }
+Stop-ScheduledTask -TaskName $TrayTaskName -ErrorAction SilentlyContinue
+$trayAction = New-ScheduledTaskAction -Execute $PyW -Argument '-m mailbridge.tray' -WorkingDirectory $InstallDir
+$trayLogon = New-ScheduledTaskTrigger -AtLogOn -User $UserId
+$trayLogon.Delay = 'PT10S'
+$traySettings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -StartWhenAvailable `
+    -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero) `
+    -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -Priority 7
+Register-ScheduledTask -TaskName $TrayTaskName -Action $trayAction -Trigger $trayLogon -Settings $traySettings `
+    -Principal $principal -Force -Description 'MailBridge : icône de notification et état de la synchronisation.' | Out-Null
+Start-ScheduledTask -TaskName $TrayTaskName
+
 Remove-Shortcuts
 $shell = New-Object -ComObject WScript.Shell
 foreach ($folder in @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('Programs'))) {
@@ -137,6 +168,7 @@ foreach ($folder in @([Environment]::GetFolderPath('Desktop'), [Environment]::Ge
     $lnk.Save()
 }
 Done "Icône MailBridge ajoutée au Bureau et au menu Démarrer"
+Done "Icône de notification active en arrière-plan"
 
 # 4) C'est parti ----------------------------------------------------------------------
 Write-Host ""
