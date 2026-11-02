@@ -199,6 +199,124 @@ class OAuthAndApi(unittest.TestCase):
             gcal.GoogleCalendar(refresh_token="RT").delete("primary", "e1")   # ne lève rien
 
 
+class GoogleSetupAssistant(unittest.TestCase):
+    """Assistant de connexion : détection du fichier, erreurs claires, vérification réelle de l'accès."""
+
+    def setUp(self):
+        self.dir = Path(tempfile.mkdtemp())
+        self.patch = mock.patch.object(gcal, "CLIENT_FILE", self.dir / "google_client.json")
+        self.patch.start()
+        self.addCleanup(self.patch.stop)
+
+    def _client_file(self, name, block="installed", mtime=None):
+        path = self.dir / name
+        path.write_text(json.dumps({block: {"client_id": f"{name[:5]}.apps.googleusercontent.com",
+                                            "client_secret": "s"}}), encoding="utf-8")
+        if mtime:
+            import os
+            os.utime(path, (mtime, mtime))
+        return path
+
+    def test_newest_downloaded_client_is_found(self):
+        self.assertIsNone(gcal.find_downloaded_client(self.dir))
+        self._client_file("client_secret_old.json", mtime=1_000_000)
+        newest = self._client_file("client_secret_new.json", mtime=2_000_000)
+        (self.dir / "autre.json").write_text("{}", encoding="utf-8")       # ignoré : mauvais nom
+        self.assertEqual(gcal.find_downloaded_client(self.dir), newest)
+
+    def test_import_leaves_downloaded_file_untouched(self):
+        path = self._client_file("client_secret_x.json")
+        before = path.read_bytes()
+        gcal.import_client_file(path)
+        self.assertEqual(path.read_bytes(), before)
+        self.assertEqual(gcal.load_client()["client_secret"], "s")
+
+    def test_web_client_is_refused_with_fix(self):
+        path = self._client_file("client_secret_web.json", block="web")
+        with self.assertRaises(gcal.GoogleError) as ctx:
+            gcal.import_client_file(path)
+        self.assertEqual(ctx.exception.fix, "clients")
+        self.assertIsNone(gcal.load_client())
+
+    def test_downloads_dir_is_an_existing_folder(self):
+        self.assertTrue(gcal.downloads_dir().is_dir())
+
+    def test_google_errors_are_explained(self):
+        cases = {
+            '{"error":{"code":403,"status":"PERMISSION_DENIED","details":[{"reason":"SERVICE_DISABLED"}]}}': "enable",
+            '{"error":"invalid_client","error_description":"The OAuth client was deleted."}': "clients",
+            '{"error":"invalid_grant"}': "audience",
+        }
+        for body, fix in cases.items():
+            self.assertEqual(gcal.explain(body, 403).fix, fix, body)
+        self.assertIsInstance(gcal.explain('{"error":"invalid_grant"}'), gcal.NotConnected)
+
+    def test_disabled_api_is_not_retried(self):
+        """403 « API désactivée » : verdict immédiat (pas 7 s de nouvelles tentatives inutiles)."""
+        gcal.save_client("1-a.apps.googleusercontent.com", "s")
+        calls = []
+
+        def fake_urlopen(req, timeout=0):
+            if req.full_url.startswith(gcal.TOKEN_URL):
+                return io.BytesIO(b'{"access_token": "AT", "expires_in": 3600}')
+            calls.append(req.full_url)
+            raise urllib.error.HTTPError(req.full_url, 403, "Forbidden", {},
+                                         io.BytesIO(b'{"error":{"status":"PERMISSION_DENIED","message":'
+                                                    b'"Calendar API has not been used in project 1 before"}}'))
+
+        with mock.patch("urllib.request.urlopen", fake_urlopen), mock.patch("time.sleep") as slept, \
+                mock.patch.object(gcal.credentials, "exists", return_value=True), \
+                mock.patch.object(gcal.credentials, "read", return_value=("moi@gmail.com", "RT")):
+            res = gcal.check_access()
+        self.assertFalse(res["ok"])
+        self.assertEqual(res["fix"], "enable")
+        self.assertEqual(len(calls), 1)
+        slept.assert_not_called()
+
+    def test_check_access_counts_calendars(self):
+        gcal.save_client("1-a.apps.googleusercontent.com", "s")
+
+        def fake_urlopen(req, timeout=0):
+            if req.full_url.startswith(gcal.TOKEN_URL):
+                return io.BytesIO(b'{"access_token": "AT", "expires_in": 3600}')
+            return io.BytesIO(json.dumps({"items": [{"id": "a"}, {"id": "b", "primary": True}]}).encode())
+
+        with mock.patch("urllib.request.urlopen", fake_urlopen), \
+                mock.patch.object(gcal.credentials, "exists", return_value=True), \
+                mock.patch.object(gcal.credentials, "read", return_value=("moi@gmail.com", "RT")):
+            res = gcal.check_access()
+        self.assertEqual((res["ok"], res["calendars"], res["email"]), (True, 2, "moi@gmail.com"))
+
+    def _browser_returning(self, query_of):
+        """Faux navigateur : appelle la page de retour locale comme le ferait Google."""
+        import threading
+        import urllib.parse as up
+
+        def open_browser(url):
+            q = dict(up.parse_qsl(up.urlparse(url).query))
+            back = q["redirect_uri"] + "/?" + up.urlencode({**query_of(q), "state": q["state"]})
+            threading.Thread(target=lambda: urllib.request.urlopen(back, timeout=5).read(), daemon=True).start()
+        return open_browser
+
+    def test_blocked_consent_points_to_publishing(self):
+        import urllib.request  # noqa: F401  (utilisé par le faux navigateur)
+        gcal.save_client("1-a.apps.googleusercontent.com", "s")
+        with self.assertRaises(gcal.GoogleError) as ctx:
+            gcal.authorize(timeout_s=10, open_browser=self._browser_returning(lambda q: {"error": "access_denied"}))
+        self.assertEqual(ctx.exception.fix, "audience")
+
+    def test_cancel_stops_waiting(self):
+        import threading
+        import time as _t
+        gcal.save_client("1-a.apps.googleusercontent.com", "s")
+        threading.Timer(0.3, gcal.cancel_authorize).start()
+        t0 = _t.time()
+        with self.assertRaises(gcal.GoogleError) as ctx:
+            gcal.authorize(timeout_s=30, open_browser=lambda url: None)
+        self.assertLess(_t.time() - t0, 5)
+        self.assertIn("annulée", str(ctx.exception))
+
+
 @unittest.skipUnless(sys.platform == "win32", "format de date Windows")
 class OutlookDateFormat(unittest.TestCase):
     def test_outlook_date_contains_day_month_year(self):

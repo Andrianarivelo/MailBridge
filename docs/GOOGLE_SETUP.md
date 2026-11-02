@@ -9,44 +9,47 @@ MailBridge) ne peut l'utiliser.
 > validé par Google après un audit payant. MailBridge est un outil personnel et libre : chacun
 > utilise son propre accès.
 
-## 1. Créer un projet
+## Le plus simple : l'assistant de MailBridge
 
-1. Ouvrez <https://console.cloud.google.com/> avec votre compte Gmail.
-2. En haut, menu des projets > **Nouveau projet** > nom : `MailBridge` > **Créer**.
-   Vérifiez que le projet `MailBridge` est bien sélectionné en haut de la page.
+MailBridge > ligne **Google Agenda**. Le panneau indique toujours où vous en êtes
+(**Non connecté**, **Presque prêt**, **Connecté et vérifié**) et chaque ligne ouvre
+directement la bonne page Google. Restez connecté avec votre Gmail dans le navigateur.
 
-## 2. Activer l'API Google Calendar
+| # | Page ouverte | Ce qu'il faut y faire |
+|---|---|---|
+| 1 | [Activer l'API Google Agenda](https://console.cloud.google.com/flows/enableapi?apiid=calendar-json.googleapis.com) | Créez le projet `MailBridge` si Google le propose, puis **Activer**. |
+| 2 | [Déclarer l'application](https://console.developers.google.com/auth/branding) | **Commencer** · nom `MailBridge` · votre Gmail · audience **Externe** · coordonnées · **Créer**. |
+| 3 | [Publier l'application](https://console.developers.google.com/auth/audience) | **Publier l'application** > Confirmer (état **En production**). |
+| 4 | [Créer et télécharger l'accès](https://console.developers.google.com/auth/clients) | **Créer un client** · type **Application de bureau** · **Créer** · **Télécharger le JSON**. |
 
-1. Ouvrez <https://console.cloud.google.com/apis/library/calendar-json.googleapis.com>.
-2. Cliquez sur **Activer**.
+*Étape 3 importante :* en mode « Test », Google coupe l'accès au bout de 7 jours (ou bloque la
+connexion avec « Accès bloqué »). En production, l'accès dure. Aucune validation par Google
+n'est nécessaire pour votre usage personnel.
 
-## 3. Déclarer l'application (écran de consentement)
+Ensuite, **rien à importer à la main** : tant que le panneau est ouvert, MailBridge surveille le
+dossier Téléchargements et importe tout seul le fichier `client_secret_….json` dès qu'il
+arrive (le fichier d'origine n'est pas modifié). Boutons de secours : **Choisir le fichier…**,
+ou coller l'identifiant et le secret.
 
-1. Menu **API et services > Écran de consentement OAuth** (ou **Google Auth Platform**).
-2. Cliquez sur **Commencer** :
-   * Nom de l'application : `MailBridge` ; e-mail d'assistance : votre Gmail ;
-   * Audience : **Externe** ;
-   * Coordonnées : votre Gmail ; acceptez le règlement > **Créer**.
-3. Section **Audience** : cliquez sur **Publier l'application** puis confirmez (état **En production**).
+La connexion s'ouvre alors automatiquement dans le navigateur. Google affiche
+« Google n'a pas validé cette application » : c'est normal, c'est **votre** application.
+Cliquez sur **Paramètres avancés** > **Accéder à MailBridge (non sécurisé)** > cochez l'accès à
+Google Agenda > **Continuer**.
 
-   *Important :* en mode « Test », Google coupe l'accès au bout de 7 jours. En production,
-   l'accès dure. Aucune validation par Google n'est nécessaire pour votre usage personnel.
+MailBridge **vérifie ensuite réellement l'accès** (lecture de la liste de vos agendas) et
+affiche **Connecté et vérifié · N agendas modifiables**, puis lance la première synchro.
+En cas de problème, le message dit lequel et un bouton ouvre la page Google qui le corrige :
 
-## 4. Créer l'accès et le télécharger
+| Message | Cause | Correction |
+|---|---|---|
+| L'API Google Agenda n'est pas activée | étape 1 oubliée ou autre projet sélectionné | page 1 |
+| Connexion refusée / Accès bloqué | application encore en mode Test | page 3 |
+| Accès « Application Web » | mauvais type de client | page 4, type **Application de bureau** |
+| Google ne reconnaît plus cet accès | client supprimé ou secret changé | page 4, retéléchargez le JSON |
+| Autorisation expirée chaque semaine | application restée en mode Test | page 3, puis reconnectez |
 
-1. Section **Clients** (ou **Identifiants > Créer des identifiants > ID client OAuth**).
-2. Type d'application : **Application de bureau** ; nom : `MailBridge` > **Créer**.
-3. Cliquez sur **Télécharger le fichier JSON** (`client_secret_….json`).
-
-## 5. L'importer dans MailBridge
-
-1. MailBridge > ligne **Google Agenda** > **Importer le fichier** > choisissez le fichier JSON.
-2. **Se connecter à Google** : une page Google s'ouvre dans votre navigateur.
-   Google affiche « Google n'a pas validé cette application » : c'est normal, c'est **votre**
-   application. Cliquez sur **Paramètres avancés** > **Accéder à MailBridge (non sécurisé)** >
-   cochez l'accès à Google Agenda > **Continuer**.
-3. Revenez dans MailBridge : **Ajouter un calendrier**, choisissez le compte Outlook et l'agenda
-   Google de destination (un nouvel agenda « MailBridge · … » est conseillé).
+Enfin : **Ajouter un calendrier**, choisissez le compte Outlook et l'agenda Google de
+destination (un nouvel agenda « MailBridge · … » est conseillé).
 
 ## Ce que MailBridge fait (et ne fait pas) dans votre agenda
 

@@ -321,6 +321,54 @@ h2 { font-size: 11px; font-weight: 700; letter-spacing: .9px; text-transform: up
 .steps b { display: block; font-weight: 600; }
 .steps small { display: block; color: var(--muted); font-size: 11.5px; margin: 1px 0 6px; }
 .steps .btn { height: 30px; }
+.steps li.ok small { margin-bottom: 0; }
+.steps small b { display: inline; font-weight: 600; color: var(--text); }   /* mots-clés à cliquer, dans le texte */
+.sheet-head .grow { flex: 1; }
+.btn svg { width: 14px; height: 14px; flex: none; }   /* icônes dans les boutons : jamais pleine largeur */
+[hidden] { display: none !important; }   /* l'attribut hidden l'emporte sur display:inline-flex des boutons */
+.btn-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+/* Bandeau d'état du panneau Google Agenda : verdict lisible d'un coup d'œil */
+.state {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin: 2px 0 10px; border-radius: 12px;
+  --c: var(--faint); background: color-mix(in srgb, var(--c) 11%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c) 30%, transparent); animation: rowIn .35s var(--ease) both;
+}
+.state.lvl-ok { --c: var(--ok); } .state.lvl-warn { --c: var(--warn); }
+.state.lvl-err { --c: var(--err); } .state.lvl-busy { --c: var(--a1); }
+.state .dot { background: var(--c); color: var(--c); }
+.state .dot::after { animation: ping 1.8s var(--ease) infinite; }
+.state.lvl-ok .dot::after { animation: none; }
+.state > div { flex: 1; min-width: 0; }
+.state b { display: block; font-weight: 700; font-size: 12.5px; color: var(--c); }
+.state small { display: block; color: var(--muted); font-size: 11.5px; overflow-wrap: anywhere; }
+.state .btn { height: 28px; padding: 0 10px; font-size: 12px; flex: none; }
+
+/* Sous-étapes : chaque ligne ouvre la page Google Cloud exacte */
+.links { display: flex; flex-direction: column; gap: 4px; margin: 6px 0 2px -32px; }   /* pleine largeur de l'étape */
+.link-step {
+  display: flex; align-items: center; gap: 9px; width: 100%; padding: 6px 8px; border-radius: 10px; text-align: left;
+  background: var(--surface-2); border: 1px solid var(--border); transition: border-color .2s, transform .25s var(--spring);
+}
+.link-step:hover { border-color: color-mix(in srgb, var(--a1) 55%, transparent); transform: translateX(2px); }
+.link-step > i {
+  flex: none; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-style: normal;
+  font-size: 10.5px; font-weight: 700; color: var(--a1); background: color-mix(in srgb, var(--a1) 14%, transparent);
+}
+.link-step.done > i { color: #fff; background: var(--ok); }
+.link-step > span:not(.ico) { flex: 1; min-width: 0; }
+.link-step b { font-size: 12px; font-weight: 600; }
+.link-step small { margin: 0; font-size: 11px; }
+.link-step .ico { color: var(--muted); }
+.link-step .ico svg { width: 13px; height: 13px; }
+
+/* Détection automatique du fichier téléchargé */
+.watch { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--muted); margin: 2px 0 6px; }
+.watch b { display: inline; font-weight: 600; color: var(--text); }
+.watch .dot { background: var(--a1); color: var(--a1); }
+.btn-row .btn.ghost { height: 28px; padding: 0 10px; font-size: 12px; }
+.watch .dot::after { animation: ping 1.2s var(--ease) infinite; }
+.fix { margin: -4px 0 10px; }
 .manual { margin: 0 0 8px; font-size: 12px; color: var(--muted); }
 .manual summary { cursor: pointer; margin-bottom: 8px; }
 .manual summary:hover { color: var(--a1); }

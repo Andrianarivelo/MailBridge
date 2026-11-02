@@ -181,9 +181,9 @@ class Api:
                             "changes": sum(v for k, v in stats.items() if k != "inchangé")})
         info = state.get("calendar_pass") or {}
         if not has_client:
-            level, text = "warn", "À connecter : accès Google à créer (5 min)"
+            level, text = "warn", "Non connecté · étape 1 sur 3 : créer l'accès Google"
         elif not is_connected:
-            level, text = "warn", "À connecter : connexion Google"
+            level, text = "warn", "Non connecté · étape 3 sur 3 : se connecter à Google"
         elif not sources:
             level, text = "warn", f"Connecté ({gcal.account_email()}) : ajoutez un calendrier"
         elif info.get("error") or any(s["error"] for s in sources):
@@ -209,11 +209,39 @@ class Api:
         if not paths:
             return {"ok": False, "message": ""}
         try:
-            with open(paths[0], encoding="utf-8") as fh:
-                gcal.save_client_from_json(fh.read())
+            gcal.import_client_file(paths[0])
             return {"ok": True, "message": "Accès Google importé"}
         except Exception as exc:
-            return {"ok": False, "message": str(exc)}
+            return {"ok": False, "message": str(exc), "fix": getattr(exc, "fix", "")}
+
+    def google_find_download(self, since: float = 0) -> dict:
+        """Cherche client_secret_….json dans Téléchargements et l'importe s'il est apparu depuis `since`.
+
+        Appelée toutes les quelques secondes tant que l'étape 1 est affichée : dès que Google
+        télécharge le fichier, MailBridge l'importe seul et passe à l'étape suivante.
+        `since` (horodatage Unix, ms côté JavaScript) écarte les vieux fichiers d'un ancien projet ;
+        0 = accepter le plus récent, quel que soit son âge.
+        """
+        path = gcal.find_downloaded_client()
+        if path is None or path.stat().st_mtime * 1000 < since:
+            return {"ok": False, "found": False, "folder": str(gcal.downloads_dir())}
+        try:
+            gcal.import_client_file(path)
+            return {"ok": True, "found": True, "message": f"Fichier trouvé et importé : {path.name}"}
+        except Exception as exc:
+            return {"ok": False, "found": True, "message": f"{path.name} : {exc}", "fix": getattr(exc, "fix", "")}
+
+    def google_links(self) -> dict:
+        """Pages Google Cloud exactes de chaque étape (source unique : gcal.CONSOLE)."""
+        return gcal.CONSOLE
+
+    def google_check(self) -> dict:
+        """Test réel de l'accès (jeton + liste des agendas) : le verdict affiché dans le panneau."""
+        return gcal.check_access()
+
+    def google_cancel(self) -> dict:
+        gcal.cancel_authorize()
+        return {"ok": True}
 
     def google_save_client(self, client_id: str, client_secret: str) -> dict:
         try:
@@ -222,13 +250,20 @@ class Api:
         except Exception as exc:
             return {"ok": False, "message": str(exc)}
 
+    def google_forget_client(self) -> dict:
+        """Oublie le fichier client importé (pour en importer un autre) et la connexion associée."""
+        gcal.disconnect()
+        gcal.CLIENT_FILE.unlink(missing_ok=True)
+        return {"ok": True}
+
     def google_connect(self) -> dict:
-        """Ouvre la connexion Google dans le navigateur et attend (5 min max)."""
+        """Ouvre la connexion Google dans le navigateur, attend (5 min max), puis vérifie l'accès."""
         try:
             email = gcal.authorize()
-            return {"ok": True, "message": f"Connecté : {email}"}
         except Exception as exc:
-            return {"ok": False, "message": str(exc)}
+            return {"ok": False, "message": str(exc), "fix": getattr(exc, "fix", "")}
+        check = gcal.check_access()
+        return {**check, "message": f"Connecté : {email} · {check['message']}" if check["ok"] else check["message"]}
 
     def google_disconnect(self) -> dict:
         gcal.disconnect()
@@ -388,6 +423,10 @@ class Api:
     def open_url(self, url: str) -> dict:
         if url.startswith("https://"):
             webbrowser.open(url)
+        return {}
+
+    def open_downloads(self) -> dict:
+        os.startfile(str(gcal.downloads_dir()))
         return {}
 
 

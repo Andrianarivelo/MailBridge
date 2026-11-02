@@ -11,6 +11,31 @@ const RING_LENGTH = 2 * Math.PI * 34;
 const GITHUB_URL = "https://github.com/Andrianarivelo/MailBridge";
 const GOOGLE_GUIDE_URL = GITHUB_URL + "/blob/main/docs/GOOGLE_SETUP.md";
 const APP_PASSWORD_URL = "https://myaccount.google.com/apppasswords";
+const DOWNLOAD_POLL_MS = 2000;    // recherche du fichier client_secret_….json dans Téléchargements
+
+// Pages Google Cloud exactes (remplacées au démarrage par celles de Python : gcal.CONSOLE)
+let GOOGLE = {
+  enable: "https://console.cloud.google.com/flows/enableapi?apiid=calendar-json.googleapis.com",
+  branding: "https://console.developers.google.com/auth/branding",
+  audience: "https://console.developers.google.com/auth/audience",
+  clients: "https://console.developers.google.com/auth/clients",
+  permissions: "https://myaccount.google.com/permissions",
+};
+// Création de l'accès Google : une ligne = une page, avec exactement quoi y cliquer
+const GOOGLE_SETUP = [
+  { k: "enable", title: "Activer l'API Google Agenda",
+    how: "Créez le projet « MailBridge » si Google le propose, puis <b>Activer</b>." },
+  { k: "branding", title: "Déclarer l'application",
+    how: "<b>Commencer</b> · nom MailBridge · votre Gmail · audience <b>Externe</b> · <b>Créer</b>." },
+  { k: "audience", title: "Publier l'application",
+    how: "<b>Publier l'application</b> › Confirmer. Sinon l'accès expire après 7 jours." },
+  { k: "clients", title: "Créer et télécharger l'accès",
+    how: "<b>Créer un client</b> · type <b>Application de bureau</b> · Créer · <b>Télécharger le JSON</b>." },
+];
+const FIX_LABEL = { enable: "Activer l'API Google Agenda", audience: "Publier l'application",
+  clients: "Recréer l'accès (Application de bureau)", branding: "Déclarer l'application" };
+const setupVisited = new Set();   // sous-étapes déjà ouvertes dans le navigateur (repère visuel)
+let calSince = 0;                 // n'importer que les fichiers téléchargés après cet instant (ms)
 
 // ---- Petits utilitaires -----------------------------------------------------
 const $ = (s, el = document) => el.querySelector(s);
@@ -69,6 +94,11 @@ const DEMO = {
       { key: "3", time: "11:20", color: "#7C3AED", sender: "Revue scientifique", subject: "Your manuscript has been received", action: "copié" },
     ],
     autostart: true,
+    // Étapes de connexion Google Agenda : #demo-calsetup (étape 1), #demo-calconnect (étape 3)
+    ...(location.hash === "#demo-calsetup" ? { calendar: { level: "warn", text: "Non connecté · étape 1 sur 3 : créer l'accès Google",
+      client: false, connected: false, email: "", sources: [] } } : {}),
+    ...(location.hash === "#demo-calconnect" ? { calendar: { level: "warn", text: "Non connecté · étape 3 sur 3 : se connecter à Google",
+      client: true, connected: false, email: "", sources: [] } } : {}),
   }),
   presets: () => DEMO_PRESETS,
   outlook_stores: () => ({ ok: true, stores: ["prenom.nom@inserm.fr", "prenom.nom@unige.ch"] }),
@@ -79,6 +109,10 @@ const DEMO = {
   check: async () => { await sleep(1200); return { ok: true, message: "[OK] Gmail\n[OK] Université Paris Cité\n[OK] Inserm" }; },
   set_autostart: () => ({ ok: true }),
   google_import_client: () => ({ ok: true, message: "Accès Google importé" }),
+  google_find_download: () => ({ ok: false, found: false }),
+  google_links: () => GOOGLE,
+  google_check: async () => { await sleep(700); return { ok: true, email: "prenom.nom@gmail.com", calendars: 5, message: "Accès vérifié · 5 agendas modifiables" }; },
+  google_cancel: () => ({ ok: true }), google_forget_client: () => ({ ok: true }), open_downloads: () => ({}),
   google_save_client: () => ({ ok: true, message: "Accès Google enregistré" }),
   google_connect: async () => { await sleep(1500); return { ok: true, message: "Connecté : prenom.nom@gmail.com" }; },
   google_disconnect: () => ({ ok: true }),
@@ -205,16 +239,21 @@ async function refresh() {
 }
 
 // ---- Panneau glissant --------------------------------------------------------
+let sheetLeave = null;   // nettoyage du panneau affiché (renvoyé par sa fonction mount)
+function leaveSheet() { const f = sheetLeave; sheetLeave = null; f?.(); }
 function openSheet(html, mount) {
   const sheet = $("#sheet");
+  leaveSheet();
   sheet.innerHTML = html;
   $("#backdrop").classList.add("show");
   requestAnimationFrame(() => sheet.classList.add("show"));
-  mount?.(sheet);
+  const cleanup = mount?.(sheet);
+  if (typeof cleanup === "function") sheetLeave = cleanup;
   const first = sheet.querySelector("input:not([type=checkbox]):not([readonly])");
   if (first) setTimeout(() => first.focus(), 350);
 }
 function closeSheet() {
+  leaveSheet();
   $("#sheet").classList.remove("show");
   $("#backdrop").classList.remove("show");
 }
@@ -350,88 +389,167 @@ function sheetGmail() {
   });
 }
 
-// Google Agenda : connexion puis calendriers Outlook synchronisés
-async function sheetCalendar() {
+// Google Agenda : assistant de connexion (3 étapes), puis calendriers Outlook synchronisés.
+// Le panneau dépend uniquement de l'état réel (fichier client importé ? jeton présent ? accès vérifié ?),
+// pour que l'utilisateur sache toujours où il en est et ce qu'il reste à faire.
+async function sheetCalendar(opts = {}) {
   await refresh();
   const c = snap.calendar;
-  const head = `<div class="sheet-head"><span class="avatar" style="--c:#10B981">${ICON.cal}</span><h3>Google Agenda</h3></div>`;
+  const head = `<div class="sheet-head"><span class="avatar" style="--c:#10B981">${ICON.cal}</span><h3>Google Agenda</h3>
+    <span class="grow"></span><a class="link" id="cGuide" title="Guide détaillé, avec explications">Guide ${ICON.ext}</a></div>`;
+  const bindGuide = (el) => { $("#cGuide", el).onclick = () => call("open_url", GOOGLE_GUIDE_URL); };
 
-  if (!c.client) {   // étape 1 : créer et importer l'accès Google
+  if (!c.client) {   // ---- Étapes 1 et 2 : créer l'accès dans Google Cloud, puis l'importer
+    const links = GOOGLE_SETUP.map((s, i) => `<button class="link-step ${setupVisited.has(s.k) ? "done" : ""}" data-k="${s.k}">
+        <i>${setupVisited.has(s.k) ? "✓" : i + 1}</i><span><b>${esc(s.title)}</b><small>${s.how}</small></span>
+        <span class="ico">${ICON.ext}</span></button>`).join("");
     openSheet(`${head}
-      <p class="lead">Copie automatique de vos calendriers Outlook (université, Inserm…) dans Google Agenda.</p>
+      ${stateBanner("warn", "Non connecté", "Étape 1 sur 3 : créez votre accès Google (5 min, une seule fois).")}
       <ol class="steps">
-        <li class="now"><b>Créer votre accès Google</b><small>5 minutes, une seule fois. Google l'exige pour l'agenda.</small>
-          <button class="btn ghost" id="cGuide">Ouvrir le guide pas à pas ${ICON.ext}</button></li>
-        <li class="now"><b>Importer le fichier téléchargé</b><small>client_secret_….json</small>
-          <button class="btn primary" id="cImport">Importer le fichier</button></li>
+        <li class="now"><b>Créer votre accès Google</b>
+          <small>Chaque ligne ouvre directement la bonne page Google, dans l'ordre.</small>
+          <div class="links">${links}</div></li>
+        <li class="now"><b>Importer le fichier téléchargé</b>
+          <div class="watch"><i class="dot"></i><span>En attente de <b>client_secret_….json</b> dans Téléchargements…</span></div>
+          <div class="btn-row"><button class="btn ghost" id="cImport">Choisir le fichier…</button>
+            <button class="btn ghost" id="cDl">Ouvrir Téléchargements</button></div>
+          <details class="manual" style="margin-top:8px"><summary>Ou coller l'identifiant et le secret</summary>
+            <div class="field"><label>ID client</label><input id="cId" placeholder="….apps.googleusercontent.com" spellcheck="false"></div>
+            ${passwordField("cSecret", "Code secret du client")}
+            <div class="actions"><span class="grow"></span><button class="btn ghost" id="cSave">Enregistrer</button></div>
+          </details></li>
         <li><b>Se connecter à Google</b><small>Dans le navigateur, en un clic.</small></li>
       </ol>
-      <details class="manual"><summary>Ou coller l'identifiant et le secret</summary>
-        <div class="field"><label>ID client</label><input id="cId" placeholder="….apps.googleusercontent.com" spellcheck="false"></div>
-        ${passwordField("cSecret", "Code secret du client")}
-        <div class="actions"><span class="grow"></span><button class="btn ghost" id="cSave">Enregistrer</button></div>
-      </details>
-      <div class="result" id="cResult"></div>`,
+      <div class="result" id="cResult"></div><div class="fix" id="cFix"></div>`,
     (el) => {
       bindEyes(el);
-      $("#cGuide", el).onclick = () => call("open_url", GOOGLE_GUIDE_URL);
+      bindGuide(el);
+      el.querySelectorAll(".link-step").forEach((b) => b.onclick = () => {
+        call("open_url", GOOGLE[b.dataset.k]);
+        setupVisited.add(b.dataset.k);
+        b.classList.add("done");
+        b.querySelector("i").textContent = "✓";
+      });
       const done = async (res) => {
-        setResult($("#cResult", el), res.ok, res.message);
-        if (res.ok) { toast(res.message, "ok"); await sleep(700); sheetCalendar(); }
+        showOutcome(el, res);
+        if (res.ok) { clearInterval(timer); toast(res.message, "ok"); await sleep(700); sheetCalendar({ autoConnect: true }); }
       };
+      $("#cDl", el).onclick = () => call("open_downloads");
       $("#cImport", el).onclick = async () => { const r = await call("google_import_client"); if (r.message) done(r); };
       $("#cSave", el).onclick = async () => done(await call("google_save_client", $("#cId", el).value, $("#cSecret", el).value));
+      // Surveillance de Téléchargements : le fichier est importé dès que Google l'a téléchargé
+      let polling = false;
+      const timer = setInterval(async () => {
+        if (polling) return;
+        polling = true;
+        const r = await call("google_find_download", calSince);
+        polling = false;
+        if (!r.found) return;
+        if (r.ok) return done(r);
+        calSince = Date.now();      // fichier refusé (mauvais type…) : on attend le suivant
+        showOutcome(el, r);
+      }, DOWNLOAD_POLL_MS);
+      return () => clearInterval(timer);
     });
     return;
   }
 
-  if (!c.connected) {   // étape 2 : connexion dans le navigateur
+  if (!c.connected) {   // ---- Étape 3 : connexion dans le navigateur
     openSheet(`${head}
-      <p class="lead">Dernière étape : autorisez MailBridge à écrire dans votre agenda.</p>
-      <ol class="steps"><li class="ok"><b>Accès Google importé</b></li>
-        <li class="now"><b>Se connecter à Google</b><small>Une page Google s'ouvre dans votre navigateur. Si Google
-        affiche « application non validée », cliquez sur « Paramètres avancés » puis « Accéder à MailBridge » : c'est
-        votre propre accès.</small></li></ol>
-      <div class="result" id="cResult"></div>
-      <div class="actions"><span class="grow"></span><button class="btn primary" id="cConnect">Se connecter à Google</button></div>`,
+      ${stateBanner("warn", "Presque prêt", "Étape 3 sur 3 : autorisez MailBridge à écrire dans votre agenda.")}
+      <ol class="steps">
+        <li class="ok"><b>Accès Google créé</b></li>
+        <li class="ok"><b>Fichier importé</b><small><a class="link" id="cReplace">Importer un autre fichier</a></small></li>
+        <li class="now"><b>Se connecter à Google</b>
+          <small>Choisissez votre Gmail. Si Google affiche « Google n'a pas validé cette application » : c'est normal,
+          c'est <b>votre</b> accès. Cliquez sur <b>Paramètres avancés</b> › <b>Accéder à MailBridge</b>, cochez
+          <b>Google Agenda</b> › <b>Continuer</b>.</small>
+          <div class="btn-row"><button class="btn primary" id="cConnect">Se connecter à Google</button>
+            <button class="btn ghost" id="cCancel" hidden>Annuler</button></div></li>
+      </ol>
+      <div class="result" id="cResult"></div><div class="fix" id="cFix"></div>`,
     (el) => {
-      $("#cConnect", el).onclick = async () => {
-        const btn = $("#cConnect", el);
+      bindGuide(el);
+      const btn = $("#cConnect", el), cancel = $("#cCancel", el);
+      $("#cReplace", el).onclick = async () => {
+        await call("google_forget_client");
+        calSince = Date.now();      // n'importer que le prochain fichier téléchargé
+        sheetCalendar();
+      };
+      cancel.onclick = () => call("google_cancel");
+      btn.onclick = async () => {
         setBusyButton(btn, true, "Validez dans le navigateur…");
+        cancel.hidden = false;
+        $("#cFix", el).innerHTML = "";
+        setResult($("#cResult", el), true, "");
         const res = await call("google_connect");
         setBusyButton(btn, false, "Se connecter à Google");
-        setResult($("#cResult", el), res.ok, res.message);
-        if (res.ok) { toast("Google Agenda connecté", "ok"); await sleep(800); sheetCalendar(); }
+        cancel.hidden = true;
+        showOutcome(el, res);
+        if (res.ok) { toast("Google Agenda connecté", "ok"); await sleep(900); sheetCalendar({ firstSync: true }); }
       };
+      if (opts.autoConnect) btn.click();   // fichier tout juste importé : on enchaîne sans clic de plus
     });
     return;
   }
 
-  // Connecté : liste des calendriers synchronisés
+  // ---- Connecté : verdict réel de l'accès + calendriers synchronisés
   const rows = c.sources.map((s, i) => `<li class="row" data-id="${esc(s.id)}" style="animation-delay:${i * 50}ms">
       <div class="avatar" style="--c:#10B981">${esc(initials(s.label))}</div>
       <div class="row-main"><b>${esc(s.label)}</b><small>${esc(s.error ? s.error : `${s.store} → ${s.target_name || "nouvel agenda"}`)}</small></div>
       <div class="row-end"><span class="badge">${s.count != null ? s.count + " év." : ""}</span>
       <span class="lvl-${s.error ? "err" : s.count != null ? "ok" : "muted"}"><i class="dot"></i></span><span class="chev">${ICON.chev}</span></div></li>`).join("");
   openSheet(`${head}
-    <p class="lead">Connecté : <b>${esc(c.email)}</b> · <a class="link" id="cOut">Déconnecter</a></p>
+    ${stateBanner("busy", "Vérification de l'accès…", "Test réel auprès de Google", "cState")}
+    <p class="lead">Compte <b>${esc(c.email)}</b> · <a class="link" id="cOut">Déconnecter</a></p>
     <ul class="rows">${rows || `<li class="empty">Aucun calendrier : ajoutez celui d'un compte Outlook.</li>`}</ul>
-    <div class="result" id="cResult"></div>
+    <div class="result" id="cResult"></div><div class="fix" id="cFix"></div>
     <div class="actions"><button class="chip" id="cAdd"><span class="ico">${ICON.plus}</span>Ajouter un calendrier</button>
       <span class="grow"></span><button class="btn primary" id="cSync">Synchroniser</button></div>`,
   (el) => {
+    bindGuide(el);
     el.querySelectorAll(".row").forEach((r) => r.onclick = () => sheetCalendarSource(c.sources.find((s) => s.id === r.dataset.id)));
     $("#cAdd", el).onclick = () => sheetCalendarSource(null);
     $("#cOut", el).onclick = async () => { await call("google_disconnect"); toast("Google Agenda déconnecté"); sheetCalendar(); };
-    $("#cSync", el).onclick = async () => {
+    const verify = async () => {
+      const chk = await call("google_check");
+      const banner = $("#cState", el);
+      if (!banner) return;   // panneau fermé entre-temps
+      banner.outerHTML = chk.ok
+        ? stateBanner("ok", "Connecté et vérifié", esc(chk.message), "cState")
+        : stateBanner("err", "L'accès ne fonctionne pas", esc(chk.message), "cState",
+          `<button class="btn ghost" id="cRetry">${chk.fix ? "Corriger" : "Réessayer"}</button>`);
+      const retry = $("#cRetry", el);
+      if (retry) retry.onclick = chk.fix ? () => call("open_url", GOOGLE[chk.fix]) : verify;
+      return chk.ok;
+    };
+    const sync = async () => {
       const btn = $("#cSync", el);
       setBusyButton(btn, true, "Synchronisation…");
       const res = await call("sync_calendars_now");
       setBusyButton(btn, false, "Synchroniser");
-      setResult($("#cResult", el), res.ok, res.message);
+      showOutcome(el, res);
       refresh();
     };
+    $("#cSync", el).onclick = sync;
+    verify().then((ok) => { if (ok && opts.firstSync && c.sources.length) sync(); });   // 1re synchro automatique
   });
+}
+
+// Bandeau d'état (niveau ok | warn | err | busy). `title` et `text` sont déjà échappés.
+function stateBanner(level, title, text, id = "", extra = "") {
+  return `<div class="state lvl-${level}" ${id ? `id="${id}"` : ""}>
+    ${level === "busy" ? `<span class="ico spinning">${ICON.sync}</span>` : `<i class="dot"></i>`}
+    <div><b>${title}</b><small>${text}</small></div>${extra}</div>`;
+}
+
+// Résultat d'une action, avec un bouton qui ouvre la page Google qui corrige le problème
+function showOutcome(el, res) {
+  setResult($("#cResult", el), res.ok, res.message || "");
+  const fix = $("#cFix", el);
+  fix.innerHTML = !res.ok && res.fix && GOOGLE[res.fix]
+    ? `<button class="btn ghost" id="cFixBtn">${esc(FIX_LABEL[res.fix] || "Ouvrir la page Google")} ${ICON.ext}</button>` : "";
+  if (fix.firstChild) $("#cFixBtn", el).onclick = () => call("open_url", GOOGLE[res.fix]);
 }
 
 // Ajout / modification d'un calendrier synchronisé
@@ -564,13 +682,14 @@ async function start() {
   $("#backdrop").onclick = closeSheet;
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheet(); });
   presets = await call("presets");
+  GOOGLE = { ...GOOGLE, ...(await call("google_links")) };
   await refresh();
   setInterval(refresh, REFRESH_MS);
   setInterval(tick, 1000);
   // Captures d'écran de la documentation : #demo-add, #demo-form
   if (location.hash === "#demo-add") setTimeout(sheetPresets, 900);
   if (location.hash === "#demo-form") setTimeout(() => sheetAccount(null, "yahoo"), 900);
-  if (location.hash === "#demo-cal") setTimeout(sheetCalendar, 900);
+  if (location.hash.startsWith("#demo-cal")) setTimeout(sheetCalendar, 900);
 }
 window.addEventListener("pywebviewready", start);
 setTimeout(() => { if (!window.pywebview) { demo = true; start(); } }, 700);
