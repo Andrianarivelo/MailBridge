@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Tests hors ligne de MailBridge : de faux serveurs IMAP (source et Gmail) et un faux Outlook
+Tests hors ligne de GmailBridge : de faux serveurs IMAP (source et Gmail) et un faux Outlook
 reproduisent les cas réels rencontrés (redirection qui réécrit le Message-ID, rejets Gmail,
 avis de non-remise, message trop récent, coupure réseau, plusieurs comptes).
 

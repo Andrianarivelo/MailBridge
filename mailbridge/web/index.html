@@ -3,26 +3,32 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MailBridge</title>
+  <title>GmailBridge</title>
+  <link rel="icon" href="../../assets/brand/gmailbridge-mark-small.svg">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Fond animé (halos lumineux très lents) -->
-  <div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
+  <!-- Décor : ciel, lueur du soleil levant et silhouette du pont (purement visuel) -->
+  <div class="scene" aria-hidden="true">
+    <svg class="skyline" viewBox="0 0 420 130" fill="none" stroke="currentColor" stroke-linecap="round">
+      <path stroke-width="1.2" d="M132 39.9V104M144 57V104M156 71.2V104M168 82.6V104M180 91.1V104M192 96.8V104M204 99.6V104M216 99.6V104M228 96.8V104M240 91.1V104M252 82.6V104M264 71.2V104M276 57V104M288 39.9V104M109.5 36.6V104M98.1 51.5V104M85.8 64.6V104M72.5 76V104M58.3 85.6V104M43.1 93.5V104M27 99.6V104M310.5 36.6V104M321.9 51.5V104M334.2 64.6V104M347.5 76V104M361.7 85.6V104M376.9 93.5V104M393 99.6V104"/>
+      <path stroke-width="2.4" d="M120 20Q210 180 300 20M120 20Q80 90 10 104M300 20Q340 90 410 104"/>
+      <path stroke-width="5" d="M120 14V122M300 14V122"/>
+      <path stroke-width="4" d="M-4 104H424"/>
+      <path stroke-width="2" d="M150 116h50M214 116h56M176 126h68"/>
+    </svg>
+  </div>
 
   <main id="app">
-    <!-- En-tête : logo, nom, état, réglages -->
+    <!-- En-tête : symbole, logotype, état, réglages -->
     <header class="top reveal" style="--i:0">
       <div class="brand">
-        <div class="logo" aria-hidden="true">
-          <svg viewBox="0 0 48 48"><defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#6366F1"/><stop offset="1" stop-color="#A855F7"/></linearGradient></defs>
-            <rect x="2" y="2" width="44" height="44" rx="12" fill="url(#lg)"/>
-            <rect x="11" y="15" width="26" height="19" rx="3" fill="#fff"/>
-            <path d="M12.5 17.5 24 26l11.5-8.5" fill="none" stroke="url(#lg)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
+        <img class="logo" src="../../assets/brand/gmailbridge-mark.svg" alt="" draggable="false">
         <div>
-          <h1>MailBridge</h1>
+          <h1><picture>
+            <source srcset="../../assets/brand/gmailbridge-wordmark-dark.svg" media="(prefers-color-scheme: dark)">
+            <img src="../../assets/brand/gmailbridge-wordmark.svg" alt="GmailBridge" draggable="false">
+          </picture></h1>
           <p class="sub">Tous vos mails, un seul Gmail</p>
         </div>
       </div>
@@ -32,16 +38,28 @@
       </div>
     </header>
 
-    <!-- Carte principale : compte à rebours, compteurs, synchroniser -->
+    <!-- Carte principale : le courrier (le soleil) traverse le pont jusqu'à la prochaine passe -->
     <section class="card hero reveal" style="--i:1">
-      <div class="ring-wrap" title="Prochaine passe automatique">
-        <svg class="ring" viewBox="0 0 80 80">
-          <defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#6366F1"/><stop offset="1" stop-color="#C084FC"/></linearGradient></defs>
-          <circle class="ring-track" cx="40" cy="40" r="34"/>
-          <circle class="ring-bar" id="ringBar" cx="40" cy="40" r="34"/>
+      <div class="gauge" title="Prochaine passe automatique">
+        <svg class="span" viewBox="0 0 136 70" aria-hidden="true">
+          <defs>
+            <linearGradient id="gbSunH" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" style="stop-color:var(--sun-1)"/><stop offset=".55" style="stop-color:var(--sun-2)"/><stop offset="1" style="stop-color:var(--sun-3)"/></linearGradient>
+            <linearGradient id="gbSunV" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" style="stop-color:var(--sun-1)"/><stop offset="1" style="stop-color:var(--sun-3)"/></linearGradient>
+          </defs>
+          <path class="hanger" d="M34 23.3V52M44 34.7V52M54 42.2V52M82 42.2V52M92 34.7V52M102 23.3V52"/>
+          <path class="cable-track" d="M24 8Q68 84 112 8"/>
+          <path class="cable-bar" id="cableBar" d="M24 8Q68 84 112 8"/>
+          <path class="cable-flow" d="M24 8Q68 84 112 8"/>
+          <path class="steel" stroke-width="2.4" d="M24 5V60M112 5V60"/>
+          <path class="steel" stroke-width="2.1" d="M6 52H130"/>
+          <path class="ripple" stroke-width="2" opacity=".6" d="M56 58.5h24"/>
+          <path class="ripple" stroke-width="1.6" opacity=".35" d="M62 63h12"/>
+          <circle class="sun-halo" id="sunHalo" cx="24" cy="8" r="8"/>
+          <circle class="sun-dot" id="sunDot" cx="24" cy="8" r="4.2"/>
         </svg>
-        <div class="ring-text"><b id="countdown">--:--</b><small>prochaine</small></div>
+        <div class="gauge-text"><b id="countdown">--:--</b><small>prochaine passe</small></div>
       </div>
       <div class="hero-main">
         <div class="metrics">
@@ -60,7 +78,7 @@
         <button class="chip" id="btnAdd"><span class="ico" id="addIco"></span>Ajouter</button>
       </div>
       <ul class="rows" id="accounts"></ul>
-      <div class="sep"></div>
+      <div class="sep" title="Vers Gmail et Google Agenda"></div>
       <ul class="rows" id="targets"></ul>
     </section>
 
@@ -81,6 +99,7 @@
   <!-- Notifications -->
   <div class="toasts" id="toasts"></div>
 
+  <script src="icons.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

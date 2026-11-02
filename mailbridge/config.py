@@ -2,7 +2,7 @@
 """
 config.py
 =========
-Réglages de MailBridge et liste des comptes sources, stockés dans data/config.json.
+Réglages de GmailBridge et liste des comptes sources, stockés dans data/config.json.
 Les mots de passe n'y sont JAMAIS : chaque compte pointe vers une entrée du
 Gestionnaire d'identifiants Windows (champ « cred »).
 
@@ -43,7 +43,7 @@ PRESETS = {
     "outlook": {
         "name": "Compte Outlook (Inserm, Microsoft 365…)", "type": "outlook", "label": "Outlook",
         "color": "#0EA5E9",
-        "hint": "Aucun mot de passe : MailBridge lit le compte dans Outlook installé sur ce PC. "
+        "hint": "Aucun mot de passe : GmailBridge lit le compte dans Outlook installé sur ce PC. "
                 "Outlook doit être ouvert.",
     },
     "yahoo": {

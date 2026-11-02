@@ -1,22 +1,22 @@
 # =============================================================================
-#  MailBridge : installation en un clic (Windows 10 / 11)
+#  GmailBridge : installation en un clic (Windows 10 / 11)
 #
 #  Depuis Internet (PowerShell) :
 #      irm https://raw.githubusercontent.com/Andrianarivelo/MailBridge/main/install.ps1 | iex
-#  Depuis un dossier téléchargé : double-clic sur Install-MailBridge.cmd
+#  Depuis un dossier téléchargé : double-clic sur Install-GmailBridge.cmd
 #
 #  Ce que fait le script (aucun droit administrateur requis) :
-#    1. récupère MailBridge dans %LOCALAPPDATA%\Programs\MailBridge (ou l'utilise sur place) ;
+#    1. récupère GmailBridge dans %LOCALAPPDATA%\Programs\MailBridge (ou l'utilise sur place) ;
 #    2. installe un Python privé + pywebview / pywin32 grâce à « uv » (rien n'est ajouté au PATH) ;
 #    3. crée la tâche planifiée « MailBridge » (ouverture de session + toutes les 5 min,
 #       sans fenêtre, priorité basse), une icône de notification à l'ouverture de session
-#       et les raccourcis MailBridge (Bureau + menu Démarrer) ;
-#    4. ouvre MailBridge.
+#       et les raccourcis GmailBridge (Bureau + menu Démarrer) ;
+#    4. ouvre GmailBridge.
 #
 #  Options (variables d'environnement, à définir avant de lancer le script) :
 #    MAILBRIDGE_DIR        dossier d'installation        (défaut : %LOCALAPPDATA%\Programs\MailBridge)
 #    MAILBRIDGE_INTERVAL   minutes entre deux passes     (défaut : 5)
-#    MAILBRIDGE_NO_LAUNCH=1     ne pas ouvrir MailBridge à la fin
+#    MAILBRIDGE_NO_LAUNCH=1     ne pas ouvrir GmailBridge à la fin
 #  Désinstaller : powershell -ExecutionPolicy Bypass -File install.ps1 -Remove
 #                 (garde vos réglages, journaux et identifiants)
 # =============================================================================
@@ -45,12 +45,14 @@ function Done([string]$Text) { Write-Host "    $Text" -ForegroundColor DarkGray 
 
 function Remove-Shortcuts {
     foreach ($folder in @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('Programs'))) {
-        Remove-Item (Join-Path $folder 'MailBridge.lnk') -Force -ErrorAction SilentlyContinue
+        foreach ($name in @('GmailBridge.lnk', 'MailBridge.lnk')) {   # MailBridge.lnk : ancien nom
+            Remove-Item (Join-Path $folder $name) -Force -ErrorAction SilentlyContinue
+        }
     }
 }
 
 Write-Host ""
-Write-Host "  MailBridge : tous vos mails, un seul Gmail" -ForegroundColor Magenta
+Write-Host "  GmailBridge : tous vos mails, un seul Gmail" -ForegroundColor Magenta
 Write-Host ""
 
 if ($Remove) {
@@ -77,7 +79,7 @@ $tmp = $null
 if ($InPlace) {
     $SourceDir = $Here
 } else {
-    Step "Téléchargement de MailBridge ($Repo)"
+    Step "Téléchargement de GmailBridge ($Repo)"
     $tmp = Join-Path $env:TEMP ("mailbridge_" + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Force $tmp | Out-Null
     $zip = Join-Path $tmp 'src.zip'
@@ -95,7 +97,7 @@ New-Item -ItemType Directory -Force (Join-Path $InstallDir 'data') | Out-Null
 Done "Dossier : $InstallDir"
 
 # 2) Python privé via uv ----------------------------------------------------------
-Step "Préparation de Python $PythonVer (privé à MailBridge)"
+Step "Préparation de Python $PythonVer (privé à GmailBridge)"
 $ToolsDir = Join-Path $InstallDir '.tools'
 $uv = (Get-Command uv -ErrorAction SilentlyContinue).Source
 if (-not $uv) {
@@ -108,7 +110,7 @@ if (-not $uv) {
         Remove-Item $uvZip -Force
     }
 }
-$env:UV_PYTHON_INSTALL_DIR = Join-Path $ToolsDir 'python'     # tout reste dans le dossier MailBridge
+$env:UV_PYTHON_INSTALL_DIR = Join-Path $ToolsDir 'python'     # tout reste dans le dossier de l'application
 $env:UV_CACHE_DIR          = Join-Path $ToolsDir 'cache'
 $Venv = Join-Path $InstallDir '.venv'
 if (-not (Test-Path (Join-Path $Venv 'Scripts\python.exe'))) {
@@ -136,7 +138,7 @@ $settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -StartWhen
               -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 30) -Priority 7
 $principal = New-ScheduledTaskPrincipal -UserId $UserId -LogonType Interactive -RunLevel Limited
 Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger @($every, $logon) -Settings $settings `
-    -Principal $principal -Force -Description 'MailBridge : copie vos comptes mail dans Gmail.' | Out-Null
+    -Principal $principal -Force -Description 'GmailBridge : copie vos comptes mail dans Gmail.' | Out-Null
 
 # L'icône reste résidente, sans charger WebView. La tâche moteur reste indépendante.
 # Fermeture propre avant l'arrêt de la tâche pour retirer aussi l'icône d'Explorer.
@@ -153,26 +155,26 @@ $traySettings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -Start
     -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero) `
     -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -Priority 7
 Register-ScheduledTask -TaskName $TrayTaskName -Action $trayAction -Trigger $trayLogon -Settings $traySettings `
-    -Principal $principal -Force -Description 'MailBridge : icône de notification et état de la synchronisation.' | Out-Null
+    -Principal $principal -Force -Description 'GmailBridge : icône de notification et état de la synchronisation.' | Out-Null
 Start-ScheduledTask -TaskName $TrayTaskName
 
 Remove-Shortcuts
 $shell = New-Object -ComObject WScript.Shell
 foreach ($folder in @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('Programs'))) {
-    $lnk = $shell.CreateShortcut((Join-Path $folder 'MailBridge.lnk'))
+    $lnk = $shell.CreateShortcut((Join-Path $folder 'GmailBridge.lnk'))
     $lnk.TargetPath = $PyW
-    $lnk.Arguments = "`"$InstallDir\MailBridge.pyw`""
+    $lnk.Arguments = "`"$InstallDir\GmailBridge.pyw`""
     $lnk.WorkingDirectory = $InstallDir
-    $lnk.IconLocation = "$InstallDir\assets\mailbridge.ico,0"
-    $lnk.Description = 'MailBridge : tous vos mails, un seul Gmail'
+    $lnk.IconLocation = "$InstallDir\assets\gmailbridge.ico,0"
+    $lnk.Description = 'GmailBridge : tous vos mails, un seul Gmail'
     $lnk.Save()
 }
-Done "Icône MailBridge ajoutée au Bureau et au menu Démarrer"
+Done "Icône GmailBridge ajoutée au Bureau et au menu Démarrer"
 Done "Icône de notification active en arrière-plan"
 
 # 4) C'est parti ----------------------------------------------------------------------
 Write-Host ""
-Write-Host "  MailBridge est installé." -ForegroundColor Green
+Write-Host "  GmailBridge est installé." -ForegroundColor Green
 Write-Host "  Ouvrez-le, renseignez Gmail puis ajoutez vos comptes." -ForegroundColor Green
 Write-Host ""
-if (-not $env:MAILBRIDGE_NO_LAUNCH) { Start-Process $PyW -ArgumentList "`"$InstallDir\MailBridge.pyw`"" -WorkingDirectory $InstallDir }
+if (-not $env:MAILBRIDGE_NO_LAUNCH) { Start-Process $PyW -ArgumentList "`"$InstallDir\GmailBridge.pyw`"" -WorkingDirectory $InstallDir }

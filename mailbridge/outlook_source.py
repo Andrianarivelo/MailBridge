@@ -66,7 +66,7 @@ def connect():
     try:
         import pythoncom
         import win32com.client  # pywin32
-        pythoncom.CoInitialize()          # nécessaire hors du fil principal (fenêtre MailBridge)
+        pythoncom.CoInitialize()          # nécessaire hors du fil principal (fenêtre GmailBridge)
         app = win32com.client.Dispatch("Outlook.Application")
         return app.GetNamespace("MAPI")
     except Exception as exc:

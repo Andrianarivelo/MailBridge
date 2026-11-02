@@ -1,5 +1,5 @@
 /* =============================================================================
-   MailBridge : logique de l'interface
+   GmailBridge : logique de l'interface
    Les données viennent de Python (pywebview.api). Sans Python (navigateur) ou avec
    ?demo=1, un jeu de données fictif est utilisé (captures d'écran, aperçu).
    ============================================================================= */
@@ -7,7 +7,6 @@
 
 // ---- Paramètres -------------------------------------------------------------
 const REFRESH_MS = 4000;          // rafraîchissement de l'état
-const RING_LENGTH = 2 * Math.PI * 34;
 const GITHUB_URL = "https://github.com/Andrianarivelo/MailBridge";
 const GOOGLE_GUIDE_URL = GITHUB_URL + "/blob/main/docs/GOOGLE_SETUP.md";
 const APP_PASSWORD_URL = "https://myaccount.google.com/apppasswords";
@@ -24,9 +23,9 @@ let GOOGLE = {
 // Création de l'accès Google : une ligne = une page, avec exactement quoi y cliquer
 const GOOGLE_SETUP = [
   { k: "enable", title: "Activer l'API Google Agenda",
-    how: "Créez le projet « MailBridge » si Google le propose, puis <b>Activer</b>." },
+    how: "Créez le projet « GmailBridge » si Google le propose, puis <b>Activer</b>." },
   { k: "branding", title: "Déclarer l'application",
-    how: "<b>Commencer</b> · nom MailBridge · votre Gmail · audience <b>Externe</b> · <b>Créer</b>." },
+    how: "<b>Commencer</b> · nom GmailBridge · votre Gmail · audience <b>Externe</b> · <b>Créer</b>." },
   { k: "audience", title: "Publier l'application",
     how: "<b>Publier l'application</b> › Confirmer. Sinon l'accès expire après 7 jours." },
   { k: "clients", title: "Créer et télécharger l'accès",
@@ -45,23 +44,7 @@ const initials = (name) => (name || "?").replace(/\(.*?\)/g, "").trim().split(/\
   .filter((w) => w.length > 2 || /^[A-Z]/.test(w)).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "?";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// Icônes (traits fins, style « Lucide »)
-const svg = (d, w = 2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
-const ICON = {
-  gear: svg('<path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>', 1.7),
-  sync: svg('<path d="M21 12a9 9 0 0 1-15.4 6.4L3 16"/><path d="M3 12a9 9 0 0 1 15.4-6.4L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/>'),
-  plus: svg('<path d="M12 5v14M5 12h14"/>', 2.4),
-  ext: svg('<path d="M7 17 17 7M8 7h9v9"/>'),
-  chev: svg('<path d="m9 18 6-6-6-6"/>'),
-  back: svg('<path d="m15 18-6-6 6-6"/>'),
-  mail: svg('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>'),
-  cal: svg('<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'),
-  pulse: svg('<path d="M3 12h4l3-8 4 16 3-8h4"/>'),
-  folder: svg('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/>'),
-  doc: svg('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>'),
-  code: svg('<path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>'),
-  okmark: '<svg class="okmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
-};
+// Icônes : ICON est défini par icons.js (iconographie GmailBridge, générée par tools/build_brand.py)
 
 // ---- Données fictives (aperçu / captures d'écran) ---------------------------
 const DEMO_PRESETS = {
@@ -86,8 +69,8 @@ const DEMO = {
     ],
     calendar: { level: "ok", text: "2 calendriers · 148 événements · 11:55", client: true, connected: true,
       email: "prenom.nom@gmail.com", sources: [
-        { id: "cal-u-paris", store: "prenom.nom@u-paris.fr", label: "U-Paris", target_id: "x", target_name: "MailBridge · U-Paris", enabled: true, count: 112, changes: 2 },
-        { id: "cal-inserm", store: "prenom.nom@inserm.fr", label: "Inserm", target_id: "y", target_name: "MailBridge · Inserm", enabled: true, count: 36, changes: 0 }] },
+        { id: "cal-u-paris", store: "prenom.nom@u-paris.fr", label: "U-Paris", target_id: "x", target_name: "GmailBridge · U-Paris", enabled: true, count: 112, changes: 2 },
+        { id: "cal-inserm", store: "prenom.nom@inserm.fr", label: "Inserm", target_id: "y", target_name: "GmailBridge · Inserm", enabled: true, count: 36, changes: 0 }] },
     recent: [
       { key: "1", time: "11:56", color: "#8B5CF6", sender: "Service Formation", subject: "Convocation : atelier Moodle, lundi 10 h", action: "copié" },
       { key: "2", time: "11:41", color: "#0EA5E9", sender: "Plateforme Imagerie", subject: "Réservation confirmée : confocal jeudi", action: "copié" },
@@ -117,7 +100,7 @@ const DEMO = {
   google_connect: async () => { await sleep(1500); return { ok: true, message: "Connecté : prenom.nom@gmail.com" }; },
   google_disconnect: () => ({ ok: true }),
   google_calendars: () => ({ ok: true, calendars: [{ id: "p", name: "prenom.nom@gmail.com", primary: true },
-    { id: "x", name: "MailBridge · U-Paris" }, { id: "y", name: "MailBridge · Inserm" }] }),
+    { id: "x", name: "GmailBridge · U-Paris" }, { id: "y", name: "GmailBridge · Inserm" }] }),
   save_calendar: () => ({ ok: true, message: "Calendrier enregistré" }),
   delete_calendar: () => ({ ok: true }),
   sync_calendars_now: async () => { await sleep(1800); return { ok: true, message: "Agendas à jour · 4 ajoutés, 1 mis à jour" }; },
@@ -163,7 +146,12 @@ function tick() {
   if (busy || !nextAt) return;
   const left = Math.max(0, Math.round((nextAt - Date.now()) / 1000));
   $("#countdown").textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
-  $("#ringBar").style.strokeDashoffset = RING_LENGTH * (1 - left / interval);
+  const cable = $("#cableBar"), length = cable.getTotalLength();
+  const p = Math.min(1, Math.max(0, 1 - left / interval));     // 0 : passe faite, 1 : prochaine passe
+  cable.style.strokeDasharray = length;
+  cable.style.strokeDashoffset = length * (1 - p);
+  const pt = cable.getPointAtLength(length * p);
+  for (const id of ["#sunDot", "#sunHalo"]) { $(id).setAttribute("cx", pt.x.toFixed(2)); $(id).setAttribute("cy", pt.y.toFixed(2)); }
 }
 
 // ---- Rendu -------------------------------------------------------------------
@@ -204,8 +192,8 @@ function render(s) {
   }
 
   const targets = [
-    { k: "gmail", icon: ICON.mail, c: "#EA4335", name: "Gmail (destination)", sub: s.gmail.address || "À configurer : mot de passe d'application", level: s.gmail.address ? (s.gmail.level || "ok") : "warn" },
-    { k: "cal", icon: ICON.cal, c: "#10B981", name: "Google Agenda", sub: s.calendar.text, level: s.calendar.level },
+    { k: "gmail", icon: ICON.mail, c: "#E8553E", name: "Gmail (destination)", sub: s.gmail.address || "À configurer : mot de passe d'application", level: s.gmail.address ? (s.gmail.level || "ok") : "warn" },
+    { k: "cal", icon: ICON.cal, c: "#14A37F", name: "Google Agenda", sub: s.calendar.text, level: s.calendar.level },
   ];
   if (changed("targets", targets)) {
     $("#targets").innerHTML = targets.map((t) => `<li class="row" data-k="${t.k}" style="animation:none">
@@ -361,7 +349,7 @@ async function sheetAccount(acc, presetKey) {
 
 // Destination Gmail
 function sheetGmail() {
-  openSheet(`<div class="sheet-head"><span class="avatar" style="--c:#EA4335">${ICON.mail}</span><h3>Gmail (destination)</h3></div>
+  openSheet(`<div class="sheet-head"><span class="avatar" style="--c:#E8553E">${ICON.mail}</span><h3>Gmail (destination)</h3></div>
     <p class="lead">Tous les comptes arrivent ici, chacun avec son libellé.</p>
     <div class="hint">Google exige un <b>mot de passe d'application</b> (16 lettres), pas votre mot de passe habituel.</div>
     <div class="field"><label>Adresse Gmail</label><input id="gAddr" value="${esc(snap?.gmail.address || "")}" placeholder="prenom.nom@gmail.com" spellcheck="false"></div>
@@ -395,7 +383,7 @@ function sheetGmail() {
 async function sheetCalendar(opts = {}) {
   await refresh();
   const c = snap.calendar;
-  const head = `<div class="sheet-head"><span class="avatar" style="--c:#10B981">${ICON.cal}</span><h3>Google Agenda</h3>
+  const head = `<div class="sheet-head"><span class="avatar" style="--c:#14A37F">${ICON.cal}</span><h3>Google Agenda</h3>
     <span class="grow"></span><a class="link" id="cGuide" title="Guide détaillé, avec explications">Guide ${ICON.ext}</a></div>`;
   const bindGuide = (el) => { $("#cGuide", el).onclick = () => call("open_url", GOOGLE_GUIDE_URL); };
 
@@ -456,13 +444,13 @@ async function sheetCalendar(opts = {}) {
 
   if (!c.connected) {   // ---- Étape 3 : connexion dans le navigateur
     openSheet(`${head}
-      ${stateBanner("warn", "Presque prêt", "Étape 3 sur 3 : autorisez MailBridge à écrire dans votre agenda.")}
+      ${stateBanner("warn", "Presque prêt", "Étape 3 sur 3 : autorisez GmailBridge à écrire dans votre agenda.")}
       <ol class="steps">
         <li class="ok"><b>Accès Google créé</b></li>
         <li class="ok"><b>Fichier importé</b><small><a class="link" id="cReplace">Importer un autre fichier</a></small></li>
         <li class="now"><b>Se connecter à Google</b>
           <small>Choisissez votre Gmail. Si Google affiche « Google n'a pas validé cette application » : c'est normal,
-          c'est <b>votre</b> accès. Cliquez sur <b>Paramètres avancés</b> › <b>Accéder à MailBridge</b>, cochez
+          c'est <b>votre</b> accès. Cliquez sur <b>Paramètres avancés</b> › <b>Accéder à GmailBridge</b>, cochez
           <b>Google Agenda</b> › <b>Continuer</b>.</small>
           <div class="btn-row"><button class="btn primary" id="cConnect">Se connecter à Google</button>
             <button class="btn ghost" id="cCancel" hidden>Annuler</button></div></li>
@@ -495,7 +483,7 @@ async function sheetCalendar(opts = {}) {
 
   // ---- Connecté : verdict réel de l'accès + calendriers synchronisés
   const rows = c.sources.map((s, i) => `<li class="row" data-id="${esc(s.id)}" style="animation-delay:${i * 50}ms">
-      <div class="avatar" style="--c:#10B981">${esc(initials(s.label))}</div>
+      <div class="avatar" style="--c:#14A37F">${esc(initials(s.label))}</div>
       <div class="row-main"><b>${esc(s.label)}</b><small>${esc(s.error ? s.error : `${s.store} → ${s.target_name || "nouvel agenda"}`)}</small></div>
       <div class="row-end"><span class="badge">${s.count != null ? s.count + " év." : ""}</span>
       <span class="lvl-${s.error ? "err" : s.count != null ? "ok" : "muted"}"><i class="dot"></i></span><span class="chev">${ICON.chev}</span></div></li>`).join("");
@@ -556,12 +544,12 @@ function showOutcome(el, res) {
 async function sheetCalendarSource(src) {
   const edit = !!src;
   openSheet(`<div class="sheet-head"><button class="back" id="bBack">${ICON.back}</button>
-      <span class="avatar" style="--c:#10B981">${ICON.cal}</span><h3>${edit ? esc(src.label) : "Ajouter un calendrier"}</h3></div>
+      <span class="avatar" style="--c:#14A37F">${ICON.cal}</span><h3>${edit ? esc(src.label) : "Ajouter un calendrier"}</h3></div>
     <p class="lead">Le calendrier principal d'un compte Outlook est copié dans un agenda Google (sens Outlook → Google).</p>
     <div class="field"><label>Compte Outlook</label><select id="kStore"><option>Recherche des comptes Outlook…</option></select></div>
     <div class="field"><label>Nom affiché</label><input id="kLabel" value="${esc(src?.label || "")}" placeholder="U-Paris"></div>
     <div class="field"><label>Agenda Google de destination</label><select id="kTarget"><option>Chargement…</option></select></div>
-    <div class="hint">Conseil : un agenda dédié (« MailBridge · … ») se masque ou se supprime d'un clic dans Google Agenda.</div>
+    <div class="hint">Conseil : un agenda dédié (« GmailBridge · … ») se masque ou se supprime d'un clic dans Google Agenda.</div>
     <div class="result" id="kResult"></div>
     <div class="actions">${edit ? `<button class="btn danger" id="kDel">Supprimer</button>` : ""}
       <span class="grow"></span><button class="btn primary" id="kSave">Enregistrer</button></div>`,
@@ -573,7 +561,7 @@ async function sheetCalendarSource(src) {
       ? stores.stores.map((s) => `<option ${s === src?.store ? "selected" : ""}>${esc(s)}</option>`).join("")
       : `<option value="">Ouvrez Outlook puis rouvrez ce panneau</option>`;
     const fillTargets = () => {
-      const name = `MailBridge · ${label.value.trim() || "Agenda"}`;
+      const name = `GmailBridge · ${label.value.trim() || "Agenda"}`;
       const current = targetSel.value || src?.target_id || "";
       targetSel.innerHTML = `<option value="">＋ Nouvel agenda « ${esc(name)} »</option>` +
         (cals.calendars || []).map((k) => `<option value="${esc(k.id)}" ${k.id === current ? "selected" : ""}>${esc(k.name)}${k.primary ? " (principal)" : ""}</option>`).join("");
@@ -618,8 +606,8 @@ function sheetSettings() {
       ${item("sTest", ICON.pulse, "Tester toutes les connexions", "Gmail et chaque compte")}
       ${item("sJournal", ICON.doc, "Journal des copies", "Chaque message examiné, au format Excel")}
       ${item("sCal", ICON.cal, "Google Agenda", "Connexion et calendriers synchronisés")}
-      ${item("sFolder", ICON.folder, "Dossier de MailBridge", "Configuration et journaux")}
-      ${item("sAbout", ICON.code, "À propos", `Version ${esc(snap?.version || "")} · code source sur GitHub`)}
+      ${item("sFolder", ICON.folder, "Dossier de GmailBridge", "Configuration et journaux")}
+      ${item("sAbout", ICON.bridge, "À propos", `Version ${esc(snap?.version || "")} · code source sur GitHub`)}
     </ul><div id="sOut"></div>`,
   (el) => {
     $("#autoSwitch", el).onclick = (e) => { e.preventDefault(); toggleAutostart(); };
@@ -661,7 +649,7 @@ async function toggleAutostart() {
   const want = sw.getAttribute("aria-checked") !== "true";
   sw.setAttribute("aria-checked", want ? "true" : "false");
   const res = await call("set_autostart", want);
-  toast(res.ok ? (want ? "Démarrage automatique activé" : "MailBridge en pause") : "Modification impossible",
+  toast(res.ok ? (want ? "Démarrage automatique activé" : "GmailBridge en pause") : "Modification impossible",
     res.ok ? "ok" : "err");
   refresh();
 }
@@ -671,7 +659,7 @@ let started = false;
 async function start() {
   if (started) return;
   started = true;
-  $("#btnSettings").innerHTML = ICON.gear;
+  $("#btnSettings").innerHTML = ICON.settings;
   $("#syncIco").innerHTML = ICON.sync;
   $("#addIco").innerHTML = ICON.plus;
   $("#extIco").innerHTML = ICON.ext;
@@ -686,10 +674,11 @@ async function start() {
   await refresh();
   setInterval(refresh, REFRESH_MS);
   setInterval(tick, 1000);
-  // Captures d'écran de la documentation : #demo-add, #demo-form
+  // Captures d'écran de la documentation : #demo-add, #demo-form, #demo-cal…, #demo-settings
   if (location.hash === "#demo-add") setTimeout(sheetPresets, 900);
   if (location.hash === "#demo-form") setTimeout(() => sheetAccount(null, "yahoo"), 900);
   if (location.hash.startsWith("#demo-cal")) setTimeout(sheetCalendar, 900);
+  if (location.hash === "#demo-settings") setTimeout(sheetSettings, 900);
 }
 window.addEventListener("pywebviewready", start);
 setTimeout(() => { if (!window.pywebview) { demo = true; start(); } }, 700);

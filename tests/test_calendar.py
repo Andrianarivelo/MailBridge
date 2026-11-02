@@ -140,7 +140,7 @@ class SyncSource(unittest.TestCase):
             res = calendar_sync.run(conf, {}, NOW, ns=None, google=self.g)
             saved = config.load()
         self.assertEqual(res["cal-u-paris"]["créé"], 1)
-        self.assertEqual(self.g.created_calendars, ["MailBridge · U-Paris"])
+        self.assertEqual(self.g.created_calendars, ["GmailBridge · U-Paris"])
         self.assertEqual(saved["calendars"][0]["target_id"], "cal-1@group")
 
 

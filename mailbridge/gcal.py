@@ -6,11 +6,11 @@ Accès à Google Agenda (API Calendar v3), sans aucune bibliothèque externe.
 
 Pourquoi OAuth ?
     Google Agenda n'accepte pas les mots de passe d'application (contrairement à Gmail en IMAP).
-    MailBridge utilise donc le parcours OAuth « application de bureau » recommandé par Google :
+    GmailBridge utilise donc le parcours OAuth « application de bureau » recommandé par Google :
     vous créez une fois un « client OAuth » dans votre propre projet Google Cloud (guide :
-    docs/GOOGLE_SETUP.md), vous l'importez dans MailBridge, puis vous vous connectez dans le
+    docs/GOOGLE_SETUP.md), vous l'importez dans GmailBridge, puis vous vous connectez dans le
     navigateur. Seul le jeton de renouvellement est conservé, dans le coffre d'identifiants
-    Windows ; aucun mot de passe Google n'est jamais vu par MailBridge.
+    Windows ; aucun mot de passe Google n'est jamais vu par GmailBridge.
 
 Détails techniques
     * Redirection « loopback » (http://127.0.0.1:<port>) + PKCE (RFC 7636).
@@ -33,7 +33,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
-from . import DATA_DIR, credentials
+from . import DATA_DIR, credentials, icon
 
 # ----------------------------- Paramètres ------------------------------------
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -209,10 +209,14 @@ def _post_form(url: str, fields: dict) -> dict:
 
 # ---- Connexion dans le navigateur -------------------------------------------
 
-_DONE_PAGE = """<!doctype html><meta charset="utf-8"><title>MailBridge</title>
-<body style="font:16px Segoe UI,system-ui;background:#0B0C11;color:#EDEEF4;display:grid;place-items:center;height:100vh;margin:0">
-<div style="text-align:center"><div style="font-size:44px">{icon}</div><h2>{title}</h2>
-<p style="color:#8C92A6">{text}</p></div></body>"""
+# Page affichée dans le navigateur après la connexion : ciel de nuit, symbole GmailBridge, soleil levant
+_DONE_PAGE = """<!doctype html><meta charset="utf-8"><title>GmailBridge</title>
+<body style="font:16px 'Segoe UI Variable Text','Segoe UI',system-ui;margin:0;height:100vh;display:grid;place-items:center;
+color:#F4EFE9;background:radial-gradient(60% 45% at 50% 105%,rgba(255,138,76,.42),transparent),linear-gradient(#0A0C1D,#141437 70%,#2A1C47)">
+<div style="text-align:center;max-width:420px;padding:24px">
+<div style="width:96px;height:96px;margin:0 auto 22px;filter:drop-shadow(0 14px 30px rgba(255,120,80,.35)){gray}">{icon}</div>
+<h2 style="font-weight:600;letter-spacing:-.3px;margin:0 0 8px">{title}</h2>
+<p style="color:#A9A6C4;margin:0;line-height:1.5">{text}</p></div></body>"""
 
 
 _cancel = threading.Event()   # posé par cancel_authorize() (bouton « Annuler » de l'interface)
@@ -243,10 +247,10 @@ def authorize(timeout_s: int = AUTH_TIMEOUT_S, open_browser=webbrowser.open) -> 
                 return
             result.update(query)
             good = "code" in query
-            page = _DONE_PAGE.format(icon="✅" if good else "⚠️",
+            page = _DONE_PAGE.format(icon=icon.mark_svg(prefix="done"), gray="" if good else " grayscale(1) opacity(.6)",
                                      title="Google Agenda est connecté" if good else "Connexion annulée",
-                                     text="Vous pouvez fermer cet onglet et revenir à MailBridge." if good
-                                     else "Revenez à MailBridge pour réessayer.")
+                                     text="Vous pouvez fermer cet onglet et revenir à GmailBridge." if good
+                                     else "Revenez à GmailBridge pour réessayer.")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()

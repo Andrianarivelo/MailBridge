@@ -39,7 +39,7 @@ def task_enabled() -> bool | None:
 
 
 def launch(*args: str) -> subprocess.Popen:
-    """Launch a MailBridge component with the same Python, without a console."""
+    """Launch a GmailBridge component with the same Python, without a console."""
     executable = Path(sys.executable)
     windowless = executable.with_name("pythonw.exe")
     return subprocess.Popen(

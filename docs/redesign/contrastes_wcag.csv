@@ -1,0 +1,21 @@
+version,theme,element,fg,bg,ratio,seuil,conforme
+v3,clair,texte,#141A3F,#FBFAF8,16.11,4.5,True
+v3,clair,texte secondaire,#61668A,#FBFAF8,5.33,4.5,True
+v3,clair,lien / Ajouter (corail),#C9432B,#FFFFFF,4.86,4.5,True
+v3,clair,état actif (texte +14),#0F7F5F,#FBFAF8,4.77,4.5,True
+v3,clair,état à vérifier (titre bandeau),#C27A0E,#FBF3E6,3.13,3.0,True
+v3,clair,état erreur,#D33A42,#FBFAF8,4.52,4.5,True
+v3,clair,texte bouton principal,#FFF6EE,#2B3076,11.01,4.5,True
+v3,clair,texte bouton principal (bas),#FFF6EE,#171B47,15.32,4.5,True
+v3,clair,signal état en pause (glyphe),#8A8DA5,#FBFAF8,3.13,3.0,True
+v3,sombre,texte,#F4EFE9,#14162B,15.58,4.5,True
+v3,sombre,texte secondaire,#9C9EBD,#14162B,6.82,4.5,True
+v3,sombre,lien / Ajouter (corail),#FF9068,#171A38,7.61,4.5,True
+v3,sombre,état actif,#3DD6A8,#14162B,9.65,4.5,True
+v3,sombre,état à vérifier,#FFC15E,#14162B,11.06,4.5,True
+v3,sombre,état erreur,#FF6B6B,#14162B,6.42,4.5,True
+v3,sombre,texte bouton principal,#FFF6EE,#3D3894,8.97,4.5,True
+v2,clair,texte secondaire,#6B7086,#FFFFFF,4.9,4.5,True
+v2,clair,Ajouter (indigo),#6366F1,#EEEFFD,3.91,4.5,False
+v2,clair,texte bouton principal,#FFFFFF,#8B5CF6,4.23,4.5,False
+v2,sombre,texte secondaire,#8C92A6,#15161D,5.82,4.5,True

@@ -2,13 +2,13 @@
 """
 engine.py
 =========
-Moteur de MailBridge : une « passe » copie dans Gmail les nouveaux messages de chaque compte
+Moteur de GmailBridge : une « passe » copie dans Gmail les nouveaux messages de chaque compte
 source activé, puis vérifie que la synchro calendrier tourne.
 
 Pourquoi copier plutôt que rediriger ?
     Quand un serveur réexpédie un mail venu de l'extérieur, Gmail voit un expéditeur
     (ex. @sorbonne-universite.fr) arriver d'un serveur tiers : SPF / DKIM échouent et Gmail
-    rejette le message (« 550 5.7.30 »). MailBridge LIT le message à la source puis le DÉPOSE
+    rejette le message (« 550 5.7.30 »). GmailBridge LIT le message à la source puis le DÉPOSE
     directement dans Gmail (IMAP APPEND) : un dépôt n'est pas une réception, aucun contrôle
     SPF / DKIM ne s'applique, rien n'est perdu. Expéditeur, date et fil sont conservés.
 
@@ -691,7 +691,7 @@ def calendar_pass(conf: dict, state: dict, now: datetime, *, force: bool, dry_ru
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(description="MailBridge : comptes mail -> Gmail.")
+    parser = argparse.ArgumentParser(description="GmailBridge : comptes mail -> Gmail.")
     parser.add_argument("--check", action="store_true", help="teste Gmail et chaque compte")
     parser.add_argument("--dry-run", action="store_true", help="simulation : n'écrit rien dans Gmail")
     parser.add_argument("--account", help="ne traiter que ce compte (identifiant)")

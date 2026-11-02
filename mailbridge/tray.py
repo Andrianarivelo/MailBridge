@@ -48,26 +48,26 @@ def read_json(path) -> dict:
 def status_text(enabled: bool | None, state: dict, conf: dict, busy: bool) -> str:
     """Describe automation honestly, including paused tasks and recorded errors."""
     if busy:
-        return "MailBridge : synchronisation en cours"
+        return "GmailBridge : synchronisation en cours"
     if enabled is None:
-        return "MailBridge : automatisation non installée"
+        return "GmailBridge : automatisation non installée"
     if not enabled:
-        return "MailBridge : synchronisation automatique en pause"
+        return "GmailBridge : synchronisation automatique en pause"
     last = state.get("last_pass") or {}
     if last.get("outcome", "ok") != "ok":
-        return "MailBridge : erreur de synchronisation, ouvrez l'application"
+        return "GmailBridge : erreur de synchronisation, ouvrez l'application"
     if any(c.get("enabled", True) for c in conf.get("calendars", [])) and (state.get("calendar_pass") or {}).get("error"):
-        return "MailBridge : synchronisation des agendas à vérifier"
+        return "GmailBridge : synchronisation des agendas à vérifier"
     for key in ("accounts", "calendars"):
         for source in conf.get(key, []):
             previous = state.get(key, {}).get(source["id"], {}).get("last") or {}
             if source.get("enabled", True) and previous.get("error"):
-                return "MailBridge : un compte ou agenda est à vérifier"
+                return "GmailBridge : un compte ou agenda est à vérifier"
     if not conf.get("accounts") and not conf.get("calendars"):
-        return "MailBridge : actif, ajoutez un compte dans l'application"
+        return "GmailBridge : actif, ajoutez un compte dans l'application"
     if last.get("time"):
-        return f"MailBridge : actif en arrière-plan. Dernière passe : {last['time'].replace('T', ' ')}"
-    return "MailBridge : actif en arrière-plan, en attente de synchronisation"
+        return f"GmailBridge : actif en arrière-plan. Dernière passe : {last['time'].replace('T', ' ')}"
+    return "GmailBridge : actif en arrière-plan, en attente de synchronisation"
 
 
 class TrayIcon:
@@ -75,7 +75,7 @@ class TrayIcon:
 
     def __init__(self):
         self.stop = threading.Event()
-        self.tooltip = "MailBridge : vérification de l'état…"
+        self.tooltip = "GmailBridge : vérification de l'état…"
         self.added = False
         self.sync_process = None
         self.taskbar_created = win32gui.RegisterWindowMessage("TaskbarCreated")
@@ -87,11 +87,11 @@ class TrayIcon:
         # A hidden top-level window receives TaskbarCreated broadcasts after an
         # Explorer restart. Message-only windows do not receive that broadcast.
         self.hwnd = win32gui.CreateWindow(
-            WINDOW_CLASS, "MailBridge notification", 0, 0, 0, 0, 0,
+            WINDOW_CLASS, "GmailBridge notification", 0, 0, 0, 0, 0,
             0, 0, instance, None,
         )
         self.hicon = win32gui.LoadImage(
-            0, str(ASSETS_DIR / "mailbridge.ico"), win32con.IMAGE_ICON,
+            0, str(ASSETS_DIR / "gmailbridge.ico"), win32con.IMAGE_ICON,
             32, 32, win32con.LR_LOADFROMFILE,
         )
 
@@ -122,7 +122,7 @@ class TrayIcon:
                     busy = False
                 self.tooltip = status_text(enabled, state, conf, busy)
             except Exception:
-                self.tooltip = "MailBridge : état indisponible, ouvrez l'application"
+                self.tooltip = "GmailBridge : état indisponible, ouvrez l'application"
                 log.exception("Lecture de l'état impossible")
             if not self.stop.is_set():
                 win32gui.PostMessage(self.hwnd, WM_REFRESH, 0, 0)
@@ -134,7 +134,7 @@ class TrayIcon:
         try:
             win32gui.AppendMenu(menu, win32con.MF_STRING | win32con.MF_GRAYED, 0, self.tooltip)
             win32gui.AppendMenu(menu, win32con.MF_SEPARATOR, 0, "")
-            win32gui.AppendMenu(menu, win32con.MF_STRING, CMD_OPEN, "Ouvrir MailBridge")
+            win32gui.AppendMenu(menu, win32con.MF_STRING, CMD_OPEN, "Ouvrir GmailBridge")
             running = self.sync_process is not None and self.sync_process.poll() is None
             flags = win32con.MF_STRING | (win32con.MF_GRAYED if running else 0)
             win32gui.AppendMenu(menu, flags, CMD_SYNC, "Synchroniser maintenant")
@@ -154,7 +154,7 @@ class TrayIcon:
     def command(self, command):
         """Dispatch actions; the engine's existing lock prevents concurrent passes."""
         if command == CMD_OPEN:
-            launch(str(BASE_DIR / "MailBridge.pyw"))
+            launch(str(BASE_DIR / "GmailBridge.pyw"))
         elif command == CMD_SYNC:
             if self.sync_process is None or self.sync_process.poll() is not None:
                 self.sync_process = launch("-m", "mailbridge.engine")
@@ -189,7 +189,7 @@ class TrayIcon:
     def run(self):
         """Keep only a native message pump and a sleeping state-reader in memory."""
         self.update_icon()
-        worker = threading.Thread(target=self.poll, name="MailBridge tray status", daemon=True)
+        worker = threading.Thread(target=self.poll, name="GmailBridge tray status", daemon=True)
         worker.start()
         try:
             win32gui.PumpMessages()
@@ -219,7 +219,7 @@ def stop_existing(timeout: float = 30) -> None:
             raise
         win32api.CloseHandle(handle)
         if time.monotonic() >= deadline:
-            raise TimeoutError("L'ancienne icône MailBridge ne s'est pas arrêtée.")
+            raise TimeoutError("L'ancienne icône GmailBridge ne s'est pas arrêtée.")
         time.sleep(0.1)
 
 

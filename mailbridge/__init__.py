@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-MailBridge
+GmailBridge
 ==========
 Rassemble plusieurs boîtes mail (Exchange universitaire, Inserm / Microsoft 365 via
 Outlook, Yahoo, iCloud, Orange…) dans une seule boîte Gmail, et copie les calendriers
@@ -21,7 +21,7 @@ Modules
 
 from pathlib import Path
 
-__version__ = "2.0.0"
+__version__ = "3.0.0"
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 BASE_DIR = PACKAGE_DIR.parent                 # dossier d'installation

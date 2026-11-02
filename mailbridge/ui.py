@@ -2,7 +2,7 @@
 """
 ui.py
 =====
-Fenêtre de contrôle de MailBridge : interface HTML / CSS animée (dossier web/) affichée
+Fenêtre de contrôle de GmailBridge : interface HTML / CSS animée (dossier web/) affichée
 dans une fenêtre Windows native grâce à pywebview (moteur Edge WebView2, déjà présent sur
 Windows 10 / 11).
 
@@ -10,8 +10,8 @@ La classe Api expose à JavaScript les actions possibles (pywebview.api.<méthod
 état, comptes, Gmail, synchronisation, démarrage automatique… Chaque méthode renvoie un
 dictionnaire simple, converti en JSON.
 
-Lancement :  pythonw MailBridge.pyw            (raccourci Bureau / menu Démarrer)
-             pythonw MailBridge.pyw --demo     (données fictives, pour captures d'écran)
+Lancement :  pythonw GmailBridge.pyw            (raccourci Bureau / menu Démarrer)
+             pythonw GmailBridge.pyw --demo     (données fictives, pour captures d'écran)
 """
 
 from __future__ import annotations
@@ -30,12 +30,12 @@ from . import ASSETS_DIR, BASE_DIR, WEB_DIR, __version__, config, credentials, e
 from .background import TASK_NAME, ensure_tray, task_enabled
 
 # ----------------------------- Paramètres ------------------------------------
-APP_TITLE = "MailBridge"
+APP_TITLE = "GmailBridge"
 WINDOW_SIZE = (420, 730)       # px logiques (mis à l'échelle par Windows)
 RECENT_ROWS = 3
 ACTIONS_SHOWN = {"copié": "copié", "abandonné": "abandonné", "erreur": "erreur",
                  "ignoré_rebond_redirection": "ignoré"}
-BG = {"dark": "#0B0C11", "light": "#F4F5FA"}   # doit suivre web/style.css (--bg)
+BG = {"dark": "#0B0D21", "light": "#F4F1EC"}   # doit suivre web/style.css (--bg)
 # -----------------------------------------------------------------------------
 
 _NO_WINDOW = 0x08000000
@@ -134,7 +134,7 @@ class Api:
         # État général
         outcome = last_pass.get("outcome", "ok")
         if autostart is None:
-            status = ("err", "Non installé", "Relancez l'installation de MailBridge.")
+            status = ("err", "Non installé", "Relancez l'installation de GmailBridge.")
         elif autostart is False:
             status = ("muted", "En pause", "Le démarrage automatique est désactivé.")
         elif not gmail_user:
@@ -218,7 +218,7 @@ class Api:
         """Cherche client_secret_….json dans Téléchargements et l'importe s'il est apparu depuis `since`.
 
         Appelée toutes les quelques secondes tant que l'étape 1 est affichée : dès que Google
-        télécharge le fichier, MailBridge l'importe seul et passe à l'étape suivante.
+        télécharge le fichier, GmailBridge l'importe seul et passe à l'étape suivante.
         `since` (horodatage Unix, ms côté JavaScript) écarte les vieux fichiers d'un ancien projet ;
         0 = accepter le plus récent, quel que soit son âge.
         """
@@ -435,7 +435,7 @@ class Api:
 # =============================================================================
 
 def _style_window(dark: bool) -> None:
-    """Barre de titre de la couleur du fond (Windows 11) et icône MailBridge."""
+    """Barre de titre de la couleur du fond (Windows 11) et icône GmailBridge."""
     user32, dwm = ctypes.windll.user32, ctypes.windll.dwmapi
     hwnd = user32.FindWindowW(None, APP_TITLE)
     if not hwnd:
@@ -444,7 +444,7 @@ def _style_window(dark: bool) -> None:
     colorref = ctypes.c_int(int(bg[4:6] + bg[2:4] + bg[0:2], 16))       # 0x00BBGGRR
     for attr, value in ((20, ctypes.c_int(1 if dark else 0)), (35, colorref)):  # mode sombre, couleur titre
         dwm.DwmSetWindowAttribute(hwnd, attr, ctypes.byref(value), ctypes.sizeof(value))
-    ico = ASSETS_DIR / "mailbridge.ico"
+    ico = ASSETS_DIR / "gmailbridge.ico"
     if ico.exists():
         for size, which in ((32, 1), (16, 0)):   # ICON_BIG, ICON_SMALL
             hicon = user32.LoadImageW(None, str(ico), 1, size, size, 0x10)  # IMAGE_ICON, LR_LOADFROMFILE
@@ -474,7 +474,7 @@ def main(argv=None) -> None:
         ensure_tray()
     if not demo and already_running():
         return
-    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("Andrianarivelo.MailBridge")
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("Andrianarivelo.GmailBridge")
     dark = dark_mode()
     url = (WEB_DIR / "index.html").as_uri() + (f"#{demo}" if demo else "")
     api = None if demo else Api()

@@ -83,7 +83,7 @@ def read(target: str) -> tuple[str, str]:
         if err == ERROR_NOT_FOUND:
             raise CredentialNotFound(
                 f"Identifiant « {target} » absent du Gestionnaire d'identifiants Windows. "
-                "Ouvrez MailBridge et renseignez le compte."
+                "Ouvrez GmailBridge et renseignez le compte."
             )
         raise ctypes.WinError(err)
     try:
@@ -94,7 +94,7 @@ def read(target: str) -> tuple[str, str]:
         _CredFree(pcred)  # la mémoire est allouée par Windows, on la rend
 
 
-def write(target: str, username: str, password: str, comment: str = "MailBridge") -> None:
+def write(target: str, username: str, password: str, comment: str = "GmailBridge") -> None:
     """Crée ou remplace l'entrée `target` avec ce nom d'utilisateur et ce mot de passe."""
     blob = password.encode("utf-16-le")
     buffer = ctypes.create_string_buffer(blob, len(blob))  # garde la mémoire vivante pendant l'appel

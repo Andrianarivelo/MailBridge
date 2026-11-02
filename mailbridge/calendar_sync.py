@@ -3,12 +3,12 @@
 calendar_sync.py
 ================
 Synchronisation des calendriers Outlook (université, Inserm, Microsoft 365…) vers Google Agenda,
-intégrée à MailBridge (remplace Outlook Google Calendar Sync).
+intégrée à GmailBridge (remplace Outlook Google Calendar Sync).
 
 Principe (sens unique Outlook -> Google)
     1. On lit dans Outlook (ouvert) les rendez-vous de la fenêtre [aujourd'hui - N jours,
        aujourd'hui + M jours], récurrences dépliées.
-    2. On lit dans l'agenda Google cible les événements créés par MailBridge pour cette source
+    2. On lit dans l'agenda Google cible les événements créés par GmailBridge pour cette source
        (marqués par des « propriétés privées » invisibles : mailbridge, mbsrc, mbkey, mbhash).
     3. On crée ce qui manque, on met à jour ce qui a changé (empreinte mbhash), on supprime ce
        qui a disparu d'Outlook. Rien d'autre dans votre agenda Google n'est touché.
@@ -37,7 +37,7 @@ OL_RESPONSE_DECLINED = 4
 OL_FREE = 0
 OL_PRIVATE = 2
 MAX_DESCRIPTION = 4000        # caractères de description recopiés
-TARGET_PREFIX = "MailBridge · "
+TARGET_PREFIX = "GmailBridge · "
 # -----------------------------------------------------------------------------
 
 
